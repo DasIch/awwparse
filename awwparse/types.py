@@ -23,11 +23,6 @@ class Type(object):
     def parse(self, action, arguments):
         return NotImplementedError()
 
-    def assert_argument(self, action, argument):
-        if action.is_option(argument):
-            raise ArgumentMissing(argument)
-        return argument
-
     def get_next_argument(self, action, arguments):
         try:
             argument = arguments.next()
@@ -80,15 +75,16 @@ class String(Type):
             raise
 
 
-class NumberBase(Type):
+class ConverterBase(Type):
     type = None
+    type_conversion_exception = ValueError
     error_message = ""
 
     def convert(self, argument):
         try:
             return self.type(argument)
-        except ValueError:
-            raise UserTypeError(self.error_message % self.argument)
+        except self.type_conversion_exception:
+            raise UserTypeError(self.error_message % argument)
 
     def parse(self, action, arguments):
         if self.remaining:
@@ -103,38 +99,49 @@ class NumberBase(Type):
             return self.convert(argument)
 
 
-class Integer(NumberBase):
+class Integer(ConverterBase):
     type = int
     error_message = "%r is not an integer"
 
 
-class Float(NumberBase):
+class Float(ConverterBase):
     type = float
     error_message = "%r is not a float"
 
 
-class Decimal(NumberBase):
+class Decimal(ConverterBase):
     type = decimal.Decimal
+    type_conversion_exception = decimal.InvalidOperation
     error_message = "%r is not a decimal"
 
 
-class Complex(NumberBase):
+class Complex(ConverterBase):
     type = complex
     error_message = "%r is not a complex number"
 
 
-class Number(NumberBase):
-    def __init__(self, metavar=None, use_decimal=False, **kwargs):
-        NumberBase.__init__(self, metavar=metavar, **kwargs)
-        self.types = [int, decimal.Decimal if use_decimal else float, complex]
+class Any(ConverterBase):
+    def __init__(self, types, error_message, **kwargs):
+        ConverterBase.__init__(self, **kwargs)
+        self.types = types
+        self.error_message = error_message
 
     def convert(self, argument):
         for type in self.types:
             try:
-                return type(argument)
-            except ValueError:
+                return type.convert(argument)
+            except UserTypeError:
                 pass
-        raise UserTypeError("%r is not a number" % argument)
+        raise UserTypeError(self.error_message % argument)
+
+
+class Number(Any):
+    def __init__(self, use_decimal=False, **kwargs):
+        Any.__init__(
+            [Integer, Decimal if use_decimal else Float, Complex],
+            "%r is not a number",
+            **kwargs
+        )
 
 
 class Boolean(Type):
