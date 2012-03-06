@@ -329,4 +329,5 @@ class CLI(Action):
             return self.main(**result)
 
     def main(self, **kwargs):
+        # TODO: fail with a missing command exception
         raise NotImplementedError()
