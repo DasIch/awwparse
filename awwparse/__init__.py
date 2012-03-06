@@ -14,7 +14,7 @@ from awwparse.utils import set_attributes_from_kwargs
 from awwparse.exceptions import UnexpectedOption
 
 
-def set(namespace, name, result):
+def store(namespace, name, result):
     namespace[name] = result
 
 
@@ -23,7 +23,7 @@ def append(namespace, name, result):
 
 
 def add(namespace, name, result):
-    namespace.setdefault(name, {}).add(result)
+    namespace.setdefault(name, set()).add(result)
 
 
 class Matcher(object):
@@ -199,7 +199,7 @@ class Option(Matcher, Parser):
         set_attributes_from_kwargs(self, kwargs, {
             "abbreviation_prefix": "-",
             "name_prefix": "--",
-            "action": set
+            "action": store
         })
 
     def _parse_signature(self, signature):
