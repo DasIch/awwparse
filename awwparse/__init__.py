@@ -160,11 +160,11 @@ class Action(object):
                 else:
                     yield name, option
             elif self.is_short_option(argument):
-                for name, option, modified_argument in self.get_matches(argument):
+                for name, option, modified in self.get_matches(argument):
                     yield name, option
-                if modified_argument:
+                if modified:
                     raise UnexpectedOption(
-                        argument, self.strip_prefix(modified_argument)[0]
+                        argument, self.strip_prefix(modified)[0]
                     )
             elif self.is_command(argument):
                 name, command, _ = self.get_matches(argument).next()
@@ -208,7 +208,8 @@ class Option(Matcher, Parser):
     def _parse_signature(self, signature):
         if len(signature) < 2:
             raise TypeError(
-                "expected at least 2 positional arguments, got %d" % len(signature)
+                "expected at least 2 positional arguments"
+                ", got %d" % len(signature)
             )
 
         def resolve_optionals(types, root=False):
@@ -304,7 +305,10 @@ class Command(Action, Matcher):
     def run(self, arguments, defaults=None):
         if self.run_function is None:
             raise RuntimeError("run_function unspecified")
-        return self.run_function(self.parent, **Action.run(self, arguments, defaults))
+        return self.run_function(
+            self.parent,
+            **Action.run(self, arguments, defaults)
+        )
 
     def __call__(self, func):
         self.run_function = func
