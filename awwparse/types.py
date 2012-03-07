@@ -9,11 +9,12 @@
 import locale
 import decimal
 
+from awwparse.utils import missing
 from awwparse.exceptions import UserTypeError, ArgumentMissing
 
 
 class Type(object):
-    def __init__(self, metavar=None, default=None, optional=False,
+    def __init__(self, metavar=None, default=missing, optional=False,
                  remaining=False):
         self.metavar = metavar
         self.default = default
@@ -145,9 +146,6 @@ class Number(Any):
 
 
 class Boolean(Type):
-    def __init__(self, metavar=None, default=False, **kwargs):
-        Type.__init__(self, metavar=metavar, default=False, **kwargs)
-
     def parse(self, action, arguments):
         return not self.default
 

@@ -10,7 +10,7 @@ import sys
 from operator import attrgetter
 from itertools import takewhile
 
-from awwparse.utils import set_attributes_from_kwargs
+from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import UnexpectedOption
 
 # imported for the API
@@ -104,6 +104,7 @@ class Action(object):
     def defaults(self):
         return {
             name: option.default for name, option in self.options.iteritems()
+            if option.default is not missing
         }
 
     def __getattr__(self, name):
@@ -263,8 +264,11 @@ class Option(Matcher, Parser):
             return self.types[0].default
         return map(
             attrgetter("default"),
-            takewhile(lambda type: not type.optional, self.types)
-        )
+            takewhile(
+                lambda type: not type.optional and type.default is not missing,
+                self.types
+            )
+        ) or missing
 
     def matches(self, argument):
         if argument == self.long:

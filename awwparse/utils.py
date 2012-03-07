@@ -23,3 +23,15 @@ def set_attributes_from_kwargs(object, kwargs, defaults):
             "set_attributes_from_kwargs() got an unexpected keyword argument "
             "%r" % kwargs.popitem()[0]
         )
+
+
+class Missing(object):
+    def __nonzero__(self):
+        return False
+
+    def __repr__(self):
+        return "missing"
+
+
+missing = Missing()
+del Missing

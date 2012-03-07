@@ -6,7 +6,7 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse.utils import set_attributes, set_attributes_from_kwargs
+from awwparse.utils import set_attributes, set_attributes_from_kwargs, missing
 from awwparse.testsuite import TestCase, make_suite
 
 
@@ -40,6 +40,10 @@ class UtilsTestCase(TestCase):
         set_attributes_from_kwargs(object, {"foo": 3, "bar": 4}, defaults)
         self.assert_equal(object.foo, 3)
         self.assert_equal(object.bar, 4)
+
+    def test_missing(self):
+        self.assert_(not missing)
+        self.assert_equal(repr(missing), "missing")
 
 
 suite = make_suite([UtilsTestCase])
