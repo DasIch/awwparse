@@ -16,14 +16,17 @@ from awwparse.exceptions import UnexpectedOption
 
 def store(namespace, name, result):
     namespace[name] = result
+    return namespace
 
 
 def append(namespace, name, result):
     namespace.setdefault(name, []).append(result)
+    return namespace
 
 
 def add(namespace, name, result):
     namespace.setdefault(name, set()).add(result)
+    return namespace
 
 
 class Matcher(object):
@@ -175,7 +178,7 @@ class Action(object):
             namespace.update(defaults)
         for name, parsed in self.parse(arguments):
             if isinstance(parsed, Parser):
-                parsed.parse(self, namespace, name, arguments)
+                namespace = parsed.parse(self, namespace, name, arguments)
             else:
                 parsed.run(arguments, namespace)
                 return None
@@ -276,7 +279,7 @@ class Option(Matcher, Parser):
         result = []
         for type in self.types:
             result.append(type.parse(action, arguments))
-        self.action(
+        return self.action(
             namespace, name, result if len(self.types) > 1 else result[0]
         )
 
