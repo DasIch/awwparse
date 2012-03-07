@@ -237,8 +237,12 @@ class Option(Matcher, Parser):
                 if isinstance(signature[1], str):
                     name = signature[1]
                     types = signature[2:]
+                else:
+                    name = None
+                    types = signature[1:]
             else:
                 name = signature[0]
+                abbreviation = None
                 types = signature[1:]
         else:
             raise TypeError(
