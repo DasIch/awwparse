@@ -8,7 +8,7 @@
 """
 import decimal
 
-from awwparse.types import String, Integer, Float, Decimal, Complex
+from awwparse import String, Integer, Float, Decimal, Complex
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import TestCase, make_suite
 

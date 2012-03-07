@@ -13,6 +13,12 @@ from itertools import takewhile
 from awwparse.utils import set_attributes_from_kwargs
 from awwparse.exceptions import UnexpectedOption
 
+# imported for the API
+from awwparse.types import (
+    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice
+)
+# keeps pyflakes happy
+assert (String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice)
 
 def store(namespace, name, result):
     namespace[name] = result
