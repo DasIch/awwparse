@@ -248,6 +248,9 @@ class Option(Matcher, Parser):
             raise TypeError(
                 "expected str as first argument, got %r" % signature[0]
             )
+        types = resolve_optionals(types, root=True)
+        if types[0].optional:
+            raise ValueError("first type must not be optional: %r" % types[0])
         return name, abbreviation, resolve_optionals(types, root=True)
 
     @property
