@@ -70,7 +70,7 @@ class String(Type):
                 self.get_next_argument(action, arguments),
                 encoding
             )
-        except (StopIteration, ArgumentMissing):
+        except ArgumentMissing:
             if self.optional:
                 return self.default
             raise
@@ -92,7 +92,7 @@ class ConverterBase(Type):
             return map(self.convert, arguments)
         try:
             argument = self.get_next_argument(action, arguments)
-        except (StopIteration, ArgumentMissing):
+        except ArgumentMissing:
             if self.optional:
                 return self.default
             raise
