@@ -10,7 +10,9 @@ import locale
 import decimal
 
 from awwparse.utils import missing
-from awwparse.exceptions import UserTypeError, ArgumentMissing
+from awwparse.exceptions import (
+    UserTypeError, ArgumentMissing, EndOptionParsing
+)
 
 
 class Type(object):
@@ -41,9 +43,9 @@ class Bytes(Type):
             return list(arguments)
         try:
             return self.get_next_argument(action, arguments)
-        except (StopIteration, ArgumentMissing):
+        except ArgumentMissing:
             if self.optional:
-                return self.default
+                raise EndOptionParsing()
             raise
 
 
@@ -72,7 +74,7 @@ class String(Type):
             )
         except ArgumentMissing:
             if self.optional:
-                return self.default
+                raise EndOptionParsing()
             raise
 
 
@@ -94,7 +96,7 @@ class ConverterBase(Type):
             argument = self.get_next_argument(action, arguments)
         except ArgumentMissing:
             if self.optional:
-                return self.default
+                raise EndOptionParsing()
             raise
         else:
             return self.convert(argument)

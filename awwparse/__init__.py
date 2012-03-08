@@ -11,7 +11,7 @@ from operator import attrgetter
 from itertools import takewhile
 
 from awwparse.utils import set_attributes_from_kwargs, missing
-from awwparse.exceptions import UnexpectedOption
+from awwparse.exceptions import UnexpectedOption, EndOptionParsing
 
 # imported for the API
 from awwparse.types import (
@@ -293,7 +293,10 @@ class Option(Matcher, Parser):
     def parse(self, action, namespace, name, arguments):
         result = []
         for type in self.types:
-            result.append(type.parse(action, arguments))
+            try:
+                result.append(type.parse(action, arguments))
+            except EndOptionParsing:
+                break
         return self.action(
             namespace, name, result if len(self.types) > 1 else result[0]
         )

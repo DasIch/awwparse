@@ -42,3 +42,7 @@ class ArgumentMissing(CLIError):
 
 class UserTypeError(CLIError):
     pass
+
+
+class EndOptionParsing(Exception):
+    pass
