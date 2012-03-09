@@ -192,7 +192,12 @@ class Action(object):
             else:
                 parsed.run(arguments, namespace)
                 return None
-        return namespace
+        return self.main(**namespace)
+
+    def main(self, **kwargs):
+        if self.actions:
+            raise CommandMissing("expected a command")
+        raise NotImplementedError()
 
 
 class Option(Matcher, Parser):
@@ -325,13 +330,10 @@ class Command(Action, Matcher):
         new.run_function = self.run_function
         return new
 
-    def run(self, arguments, defaults=None):
+    def main(self, **kwargs):
         if self.run_function is None:
-            raise RuntimeError("run_function unspecified")
-        return self.run_function(
-            self.parent,
-            **Action.run(self, arguments, defaults)
-        )
+            return Action.main(self, **kwargs)
+        return self.run_function(self.parent, **kwargs)
 
     def __call__(self, func):
         self.run_function = func
@@ -352,13 +354,4 @@ class CLI(Action):
         self.exit = exit
 
     def run(self, arguments=sys.argv[1:]):
-        result = Action.run(self, arguments)
-        # if a command was triggered the result is None and we don't want to
-        # call main
-        if result is not None:
-            return self.main(**result)
-
-    def main(self, **kwargs):
-        if self.actions:
-            raise CommandMissing("expected a command")
-        raise NotImplementedError()
+        return Action.run(self, arguments)
