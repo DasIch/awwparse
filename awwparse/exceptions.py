@@ -44,5 +44,9 @@ class UserTypeError(CLIError):
     pass
 
 
+class CommandMissing(CLIError):
+    pass
+
+
 class EndOptionParsing(Exception):
     pass

@@ -11,7 +11,9 @@ from operator import attrgetter
 from itertools import takewhile
 
 from awwparse.utils import set_attributes_from_kwargs, missing
-from awwparse.exceptions import UnexpectedOption, EndOptionParsing
+from awwparse.exceptions import (
+    UnexpectedOption, EndOptionParsing, CommandMissing
+)
 
 # imported for the API
 from awwparse.types import (
@@ -357,5 +359,6 @@ class CLI(Action):
             return self.main(**result)
 
     def main(self, **kwargs):
-        # TODO: fail with a missing command exception
+        if self.actions:
+            raise CommandMissing("expected a command")
         raise NotImplementedError()
