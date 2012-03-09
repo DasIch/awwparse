@@ -86,6 +86,7 @@ class OptionTestCase(TestCase):
         })()
         self.assert_equal(cli.option.abbreviation_prefix, "+")
         self.assert_(cli.option.matches("+o"))
+        self.assert_equal(cli.run(["+o", "foo"]), {"option": "foo"})
 
     def test_name_prefix(self):
         cli = make_cli({"option": Option("option", Bytes())})()
@@ -97,6 +98,7 @@ class OptionTestCase(TestCase):
         })()
         self.assert_equal(cli.option.name_prefix, "++")
         self.assert_(cli.option.matches("++option"))
+        self.assert_equal(cli.run(["++option", "foo"]), {"option": "foo"})
 
     def test_actions(self):
         cli = make_cli({"option": Option("o", Bytes())})()
