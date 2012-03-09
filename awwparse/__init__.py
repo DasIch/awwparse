@@ -20,6 +20,7 @@ from awwparse.types import (
 # keeps pyflakes happy
 assert (String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice)
 
+
 def store(namespace, name, result):
     namespace[name] = result
     return namespace
