@@ -80,7 +80,7 @@ class Action(object):
         for name, action in self.actions.iteritems():
             action = action.copy()
             action.parent = self
-            self.matchers[name] = actions = action
+            self.matchers[name] = actions[name] = action
         self.actions = actions
         self.parent = None
 
