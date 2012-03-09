@@ -6,9 +6,9 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse import store, append, add, CLI, Option, Bytes
+from awwparse import store, append, add, CLI, Option, Bytes, Command
 from awwparse.utils import missing
-from awwparse.exceptions import ArgumentMissing
+from awwparse.exceptions import ArgumentMissing, CommandMissing
 from awwparse.testsuite import TestCase, make_suite
 
 
@@ -116,4 +116,16 @@ class OptionTestCase(TestCase):
         )
 
 
-suite = make_suite([ActionTestCase, OptionTestCase])
+class CLITestCase(TestCase):
+    def test_run(self):
+        class TestCLI(CLI):
+            foo = Command("foo")
+        test_cli = TestCLI()
+        with self.assert_raises(CommandMissing):
+            test_cli.run([])
+
+        with self.assert_raises(NotImplementedError):
+            CLI().run([])
+
+
+suite = make_suite([ActionTestCase, OptionTestCase, CLITestCase])
