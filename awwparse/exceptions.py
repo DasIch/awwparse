@@ -19,7 +19,7 @@ class UnexpectedOption(CLIError):
         if abbreviation is None:
             message = "%(name)s is unexpected"
         else:
-            message = "%(abbreviation)s in %(name) is unexpected"
+            message = "%(abbreviation)s in %(name)s is unexpected"
         CLIError.__init__(self, message % {
             "name": name,
             "abbreviation": abbreviation
