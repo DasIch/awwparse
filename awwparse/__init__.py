@@ -197,22 +197,20 @@ class Option(Matcher, Parser):
             )
 
         name = abbreviation = None
-        if isinstance(signature[0], str):
+        if isinstance(signature[0], str) and isinstance(signature[1], str):
+            abbreviation = signature[0]
+            name = signature[1]
+            types = signature[2:]
+        elif isinstance(signature[0], str):
             if len(signature[0]) == 1:
                 abbreviation = signature[0]
-                if isinstance(signature[1], str):
-                    name = signature[1]
-                    types = signature[2:]
-                else:
-                    name = None
-                    types = signature[1:]
             else:
                 name = signature[0]
-                abbreviation = None
-                types = signature[1:]
+            types = signature[1:]
         else:
             raise TypeError(
-                "expected str as first argument, got %r" % signature[0]
+                "expected name or abbreviation as first argument, got %r"
+                % signature[0]
             )
         types = parse_type_signature(types)
         if types[0].optional:
