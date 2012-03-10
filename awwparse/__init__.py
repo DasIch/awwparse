@@ -173,17 +173,13 @@ class Action(object):
         if defaults is not None:
             namespace.update(defaults)
         for argument in arguments:
-            print argument
             if self.is_command(argument):
-                print "is command"
                 self.commands[argument].run(arguments, namespace)
                 return
             elif self.is_long_option(argument):
-                print "is long option"
                 name, option, _ = self.get_match(argument)
                 namespace = option.parse(self, namespace, name, arguments)
             elif self.is_short_option(argument):
-                print "is short option"
                 previous_modified = argument
                 name, option, modified = self.get_match(argument)
                 while modified != previous_modified:
