@@ -157,12 +157,13 @@ class ActionTestCase(TestCase):
     def test_run(self):
         class TestAction(Action):
             commands = {"foo": Command()}
-        test_cli = TestAction()
+        test_action = TestAction()
         with self.assert_raises(CommandMissing):
-            test_cli.run([])
+            test_action.run([])
 
         with self.assert_raises(NotImplementedError):
-            CLI().run([])
+            Action().run([])
+
 
     def test_multiple_abbreviations(self):
         action = make_action({
