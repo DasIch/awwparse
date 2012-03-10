@@ -40,16 +40,6 @@ def add(namespace, name, result):
     return namespace
 
 
-class Matcher(object):
-    def matches(self, argument):
-        return False, ""
-
-
-class Parser(object):
-    def parse(self, action, namespace, name, arguments):
-        raise NotImplementedError()
-
-
 class Action(object):
     inherited_instance_attributes = frozenset(["stdin", "stdout", "stderr"])
     options = {}
@@ -206,7 +196,7 @@ class Action(object):
         raise NotImplementedError()
 
 
-class Option(Matcher, Parser):
+class Option(object):
     """
     Represents how an application is supposed to do instead of the default
     behavior.
