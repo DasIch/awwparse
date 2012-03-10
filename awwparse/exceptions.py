@@ -50,3 +50,7 @@ class CommandMissing(CLIError):
 
 class EndOptionParsing(Exception):
     pass
+
+
+class OptionConflict(Exception):
+    pass

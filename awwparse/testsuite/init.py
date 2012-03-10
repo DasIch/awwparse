@@ -6,9 +6,9 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse import store, append, add, CLI, Option, Bytes, Command
+from awwparse import store, append, add, CLI, Option, Bytes, Command, Action
 from awwparse.utils import missing
-from awwparse.exceptions import ArgumentMissing, CommandMissing
+from awwparse.exceptions import ArgumentMissing, CommandMissing, OptionConflict
 from awwparse.testsuite import TestCase, make_suite
 
 
@@ -33,11 +33,15 @@ class ActionTestCase(TestCase):
         )
 
 
-def make_cli(options):
-    return type("TestCLI", (CLI, ), {
+def make_action(options, action_cls=Action):
+    return type("Test", (action_cls, ), {
         "options": options,
         "main": lambda self, **kwargs: kwargs
     })
+
+
+def make_cli(options):
+    return make_action(options, action_cls=CLI)
 
 
 class OptionTestCase(TestCase):
@@ -127,11 +131,24 @@ class OptionTestCase(TestCase):
         self.assert_equal(option.matches("--option"), (True, ""))
 
 
-class CLITestCase(TestCase):
+class ActionTestCase(TestCase):
+    def test_add_option(self):
+        action = Action()
+        a = Option("a", "foobar", Bytes())
+        action.add_option("foo", a)
+        with self.assert_raises(OptionConflict):
+            action.add_option("bar", a)
+        with self.assert_raises(OptionConflict):
+            action.add_option("baz", Option("foobar", Bytes()))
+        with self.assert_raises(OptionConflict):
+            action.add_option("foo", Option("something", Bytes()))
+        action.add_option("foo", Option("something", Bytes()), force=True)
+        self.assert_equal(action.options["foo"].name, "something")
+
     def test_run(self):
-        class TestCLI(CLI):
+        class TestAction(Action):
             commands = {"foo": Command()}
-        test_cli = TestCLI()
+        test_cli = TestAction()
         with self.assert_raises(CommandMissing):
             test_cli.run([])
 
@@ -139,15 +156,15 @@ class CLITestCase(TestCase):
             CLI().run([])
 
     def test_multiple_abbreviations(self):
-        cli = make_cli({
+        action = make_action({
             "a": Option("a", Bytes()),
             "b": Option("b", Bytes()),
             "c": Option("c", Bytes())
         })()
         self.assert_equal(
-            cli.run(["-abc", "foo", "bar", "baz"]),
+            action.run(["-abc", "foo", "bar", "baz"]),
             {"a": "foo", "b": "bar", "c": "baz"}
         )
 
 
-suite = make_suite([ActionTestCase, OptionTestCase, CLITestCase])
+suite = make_suite([ActionTestCase, OptionTestCase, ActionTestCase])

@@ -12,7 +12,7 @@ from itertools import takewhile
 
 from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import (
-    UnexpectedOption, EndOptionParsing, CommandMissing
+    UnexpectedOption, EndOptionParsing, CommandMissing, OptionConflict
 )
 
 # imported for the API
@@ -76,6 +76,21 @@ class Action(object):
         "abbreviated_option_prefixes",
         "abbreviation_prefix"
     )
+    del make_option_property
+
+    def make_option_dict_property(name, attrname, doc=None):
+        def option_dict_property(self):
+            return {
+                getattr(option, attrname): option
+                for option in self.options.itervalues()
+            }
+        option_dict_property.__name__ = name
+        option_dict_property.__doc__ = doc
+        return property(option_dict_property)
+
+    option_shorts = make_option_dict_property("option_shorts", "short")
+    option_longs = make_option_dict_property("option_longs", "long")
+    del make_option_dict_property
 
     @property
     def defaults(self):
@@ -84,7 +99,18 @@ class Action(object):
             if option.default is not missing
         }
 
-    def add_option(self, name, option):
+    def add_option(self, name, option, force=False):
+        arguments = None
+        if option.short in self.option_shorts:
+            arguments = option, self.option_shorts[option.short], "short"
+        elif option.long in self.option_longs:
+            arguments = option, self.option_longs[option.long], "long"
+        elif not force and name in self.options:
+            arguments = option, self.options[name], "name"
+        if arguments:
+            raise OptionConflict(
+                "given option %r conflicts with %r on %r" % arguments
+            )
         self.options[name] = option
 
     def add_command(self, name, command):
