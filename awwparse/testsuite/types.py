@@ -7,10 +7,29 @@
     :license: BSD, see LICENSE.rst for details
 """
 import decimal
+from functools import partial
 
-from awwparse import String, Integer, Float, Decimal, Complex
+from awwparse import (
+    Bytes, String, Integer, Float, Decimal, Complex, parse_type_signature
+)
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import TestCase, make_suite
+
+
+class TypesTestCase(TestCase):
+    def test_parse_type_signature(self):
+        optionals = partial(map, lambda type: type.optional)
+
+        self.assert_(all(not optional for optional in optionals(
+            parse_type_signature((Bytes(), Bytes(), Bytes()))
+        )))
+        self._assert(all(optionals(
+            parse_type_signature(([Bytes(), [Bytes(), [Bytes()]]]))
+        )))
+        types = parse_type_signature((Bytes(), [Bytes(), Bytes()]))
+        self._assert(not types[0].optional)
+        self._assert(types[1].optional)
+        self._assert(not types[2].optional)
 
 
 class StringTestCase(TestCase):

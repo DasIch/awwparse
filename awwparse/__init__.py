@@ -17,7 +17,8 @@ from awwparse.exceptions import (
 
 # imported for the API
 from awwparse.types import (
-    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice
+    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
+    parse_type_signature
 )
 # keeps pyflakes happy
 assert (String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice)
@@ -195,17 +196,6 @@ class Option(Matcher, Parser):
                 ", got %d" % len(signature)
             )
 
-        def resolve_optionals(types, root=False):
-            result = []
-            if not root:
-                types[0].optional = True
-            for type in types:
-                if isinstance(type, list):
-                    result.extend(resolve_optionals(type))
-                else:
-                    result.append(type)
-            return result
-
         name = abbreviation = None
         if isinstance(signature[0], str):
             if len(signature[0]) == 1:
@@ -224,10 +214,10 @@ class Option(Matcher, Parser):
             raise TypeError(
                 "expected str as first argument, got %r" % signature[0]
             )
-        types = resolve_optionals(types, root=True)
+        types = parse_type_signature(types)
         if types[0].optional:
             raise ValueError("first type must not be optional: %r" % types[0])
-        return name, abbreviation, resolve_optionals(types, root=True)
+        return name, abbreviation, types
 
     @property
     def short(self):

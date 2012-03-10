@@ -15,6 +15,18 @@ from awwparse.exceptions import (
 )
 
 
+def parse_type_signature(types, _root=True):
+    result = []
+    if not _root:
+        types[0].optional = True
+    for type in types:
+        if isinstance(type, Type):
+            result.append(type)
+        else:
+            result.extend(parse_type_signature(type, _root=False))
+    return result
+
+
 class Type(object):
     def __init__(self, metavar=None, default=missing, optional=False,
                  remaining=False):
