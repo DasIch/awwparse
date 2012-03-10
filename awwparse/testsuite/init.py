@@ -174,6 +174,11 @@ class ActionTestCase(TestCase):
         with self.assert_raises(UnexpectedArgument):
             Action().run(["unexpected"])
 
+        action = Action()
+        action.add_option("foo", Option("b", Bytes()))
+        with self.assert_raises(UnexpectedArgument):
+            action.run(["-a"])
+
 
     def test_multiple_abbreviations(self):
         action = make_action({

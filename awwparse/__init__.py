@@ -165,7 +165,7 @@ class Action(object):
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
                     return name, option, modified_argument
-        raise RuntimeError("no match: %r" % argument)
+        raise UnexpectedArgument("%r is unexpected" % argument)
 
     def run(self, arguments, defaults=None):
         arguments = iter(arguments)
