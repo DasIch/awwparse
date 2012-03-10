@@ -48,50 +48,17 @@ class Parser(object):
         raise NotImplementedError()
 
 
-class ActionMeta(type):
-    def __init__(self, name, bases, attributes):
-        type.__init__(self, name, bases, attributes)
-        self.matchers = {}
-        self.actions = {}
-        for name, attribute in attributes.iteritems():
-            if isinstance(attribute, Matcher):
-                self.matchers[name] = attribute
-                if not isinstance(attribute, Parser):
-                    self.actions[name] = attribute
-
-    def __setattr__(self, name, attribute):
-        type.__setattr__(self, name, attribute)
-        if isinstance(attribute, Matcher):
-            self.matchers[name] = attribute
-            self.actions.pop(name, None)
-
-    def __delattr__(self, name):
-        type.__delattr__(self, name)
-        self.matchers.pop(name, None)
-        self.actions.pop(name, None)
-
-
 class Action(object):
-    __metaclass__ = ActionMeta
-
     inherited_instance_attributes = frozenset(["stdin", "stdout", "stderr"])
+    options = {}
+    commands = {}
 
     def __init__(self):
-        self.matchers = self.matchers.copy()
-        actions = {}
-        for name, action in self.actions.iteritems():
-            action = action.copy()
-            action.parent = self
-            self.matchers[name] = actions[name] = action
-        self.actions = actions
+        self.options = self.options.copy()
+        self.commands = {}
+        for name, command in self.__class__.commands.iteritems():
+            self.add_command(name, command.copy())
         self.parent = None
-
-    @property
-    def options(self):
-        return {
-            name: matcher for name, matcher in self.matchers.iteritems()
-            if isinstance(matcher, Option)
-        }
 
     @property
     def option_prefixes(self):
@@ -109,6 +76,13 @@ class Action(object):
             name: option.default for name, option in self.options.iteritems()
             if option.default is not missing
         }
+
+    def add_option(self, name, option):
+        self.options[name] = option
+
+    def add_command(self, name, command):
+        command.parent = self
+        self.commands[name] = command
 
     def __getattr__(self, name):
         if name in self.inherited_instance_attributes:
@@ -140,10 +114,7 @@ class Action(object):
         return self.is_short_option(argument) or self.is_long_option(argument)
 
     def is_command(self, argument):
-        for _, matcher, _ in self.get_matches(argument):
-            if isinstance(matcher, Command):
-                return True
-        return False
+        return argument in self.commands
 
     def strip_prefix(self, argument):
         prefixes = self.option_prefixes | self.abbreviated_option_prefixes
@@ -154,32 +125,31 @@ class Action(object):
 
     def get_matches(self, argument):
         modified_argument = argument
-        for name, matcher in self.matchers.iteritems():
-            matched, modified_argument = matcher.matches(modified_argument)
-            if matched:
-                yield name, matcher, modified_argument
+        if self.is_command(argument):
+            yield self.commands[argument]
+        else:
+            modified_argument = argument
+            for name, option in self.options.iteritems():
+                matched, modified_argument = option.matches(modified_argument)
+                if matched:
+                    yield name, option, modified_argument
 
     def parse(self, arguments):
         arguments = iter(arguments)
         for argument in arguments:
-            if self.is_long_option(argument):
-                try:
-                    name, option, _ = self.get_matches(argument).next()
-                except StopIteration:
+            try:
+                for name, match, modified in self.get_matches(argument):
+                    if modified:
+                        raise UnexpectedOption(
+                            argument, self.strip_prefix(modified)[0]
+                        )
+                    yield name, match
+                    if self.is_command(argument):
+                        raise StopIteration("command")
+            except StopIteration:
+                if self.is_option(argument):
                     raise UnexpectedOption(argument)
-                else:
-                    yield name, option
-            elif self.is_short_option(argument):
-                for name, option, modified in self.get_matches(argument):
-                    yield name, option
-                if modified:
-                    raise UnexpectedOption(
-                        argument, self.strip_prefix(modified)[0]
-                    )
-            elif self.is_command(argument):
-                name, command, _ = self.get_matches(argument).next()
-                yield name, command
-                raise StopIteration("encountered command")
+                raise
 
     def run(self, arguments, defaults=None):
         arguments = iter(arguments)
@@ -195,7 +165,7 @@ class Action(object):
         return self.main(**namespace)
 
     def main(self, **kwargs):
-        if self.actions:
+        if self.commands:
             raise CommandMissing("expected a command")
         raise NotImplementedError()
 
@@ -313,20 +283,16 @@ class Option(Matcher, Parser):
         )
 
 
-class Command(Action, Matcher):
+class Command(Action):
     """
     Represents what an application is supposed to do.
     """
-    def __init__(self, name):
+    def __init__(self):
         Action.__init__(self)
-        self.name = name
         self.run_function = None
 
-    def matches(self, argument):
-        return argument == self.name, ""
-
     def copy(self):
-        new = self.__class__(self.name)
+        new = self.__class__()
         new.run_function = self.run_function
         return new
 
