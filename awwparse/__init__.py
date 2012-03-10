@@ -279,6 +279,16 @@ class Option(object):
             namespace, name, result if len(self.types) > 1 else result[0]
         )
 
+    def __repr__(self):
+        return "%s(%s, %s, abbreviation_prefix=%r, name_prefix=%r, action=%r)" % (
+            self.__class__.__name__,
+            ", ".join(map(repr, filter(None, [self.abbreviation, self.name]))),
+            ", ".join(map(repr, self.types)),
+            self.abbreviation_prefix,
+            self.name_prefix,
+            self.action.__name__
+        )
+
 
 class Command(Action):
     """

@@ -133,6 +133,18 @@ class OptionTestCase(TestCase):
         self.assert_equal(option.matches("--asd"), (False, "--asd"))
         self.assert_equal(option.matches("--option"), (True, ""))
 
+    def test_repr(self):
+        self.assert_(
+            repr(Option("o", Bytes())).startswith("Option('o', Bytes")
+        )
+        self.assert_(
+            repr(Option("option", Bytes())).startswith("Option('option', Bytes")
+        )
+        self.assert_equal(
+            repr(Option("o", "option", Bytes())),
+            "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--', action='store')" % Bytes()
+        )
+
 
 class ActionTestCase(TestCase):
     def test_option_shorts_and_longs(self):
