@@ -10,6 +10,13 @@ import unittest
 import re
 from itertools import imap, chain
 
+from awwparse import Action
+
+
+class TestAction(Action):
+    def main(self, **kwargs):
+        return kwargs
+
 
 _begin_word_re = re.compile(r"_([a-z])")
 def to_unittest_identifier(identifier):

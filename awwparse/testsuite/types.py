@@ -11,10 +11,10 @@ from functools import partial
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, parse_type_signature,
-    Action, Option
+    Option
 )
 from awwparse.exceptions import UserTypeError
-from awwparse.testsuite import TestCase, make_suite
+from awwparse.testsuite import TestCase, make_suite, TestAction
 
 
 class TypesTestCase(TestCase):
@@ -35,7 +35,7 @@ class TypesTestCase(TestCase):
 
 class BytesTestCase(TestCase):
     def test_parse(self):
-        action = Action()
+        action = TestAction()
         action.add_option("foo", Option("a", Bytes()))
         self.assert_equal(action.run(["-a", "foo"]), {"foo": "foo"})
 
@@ -108,5 +108,5 @@ class ComplexTestCase(TestCase):
 
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
-    ComplexTestCase
+    ComplexTestCase, BytesTestCase
 ])
