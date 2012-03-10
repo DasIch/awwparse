@@ -19,10 +19,12 @@ from awwparse.exceptions import (
 # imported for the API
 from awwparse.types import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    parse_type_signature
+    parse_type_signature, Type
 )
 # keeps pyflakes happy
-assert (String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice)
+assert (
+    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type
+)
 
 
 def store(namespace, name, result):

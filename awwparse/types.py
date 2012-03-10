@@ -48,6 +48,12 @@ class Type(object):
                 raise ArgumentMissing(argument)
             return argument
 
+    def __repr__(self):
+        return "%s(metavar=%r, default=%r, optional=%r, remaining=%r)" % (
+            self.__class__.__name__, self.metavar, self.default, self.optional,
+            self.remaining
+        )
+
 
 class Bytes(Type):
     def parse(self, action, arguments):
@@ -150,13 +156,27 @@ class Any(ConverterBase):
                 pass
         raise UserTypeError(self.error_message % argument)
 
+    def __repr__(self):
+        return "%s(%r, %r, metavar=%r, default=%r, optional=%r, remaining=%r" % (
+            self.__class__.__name__, self.types, self.error_message,
+            self.metavar, self.default, self.optional, self.remaining
+        )
+
 
 class Number(Any):
     def __init__(self, use_decimal=False, **kwargs):
         Any.__init__(
+            self,
             [Integer, Decimal if use_decimal else Float, Complex],
             "%r is not a number",
             **kwargs
+        )
+        self.use_decimal = use_decimal
+
+    def __repr__(self):
+        return "%s(use_decimal=%r, metavar=%r, default=%r, optional=%r, remaining=%r)" % (
+            self.__class__.__name__, self.use_decimal, self.metavar,
+            self.default, self.optional, self.remaining
         )
 
 
@@ -182,3 +202,8 @@ class Choice(Type):
                     )
                 )
         return parsed
+
+    def __repr__(self):
+        return "%s(%r, %r, metavar=%r)" % (
+            self.__class__.__name__, self.type, self.choices, self.metavar
+        )

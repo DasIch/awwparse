@@ -11,7 +11,7 @@ from functools import partial
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, parse_type_signature,
-    Option
+    Option, Type, Any, Number, Choice
 )
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import TestCase, make_suite, TestAction
@@ -31,6 +31,12 @@ class TypesTestCase(TestCase):
         self._assert(not types[0].optional)
         self._assert(types[1].optional)
         self._assert(not types[2].optional)
+
+    def test_repr(self):
+        self.assert_equal(
+            repr(Type()),
+            "Type(metavar=None, default=missing, optional=False, remaining=False"
+        )
 
 
 class BytesTestCase(TestCase):
@@ -97,6 +103,15 @@ class StringTestCase(TestCase):
         )
 
 
+class AnyTestCase(TestCase):
+    def test_repr(self):
+        bytes = Bytes()
+        self.assert_equal(
+            repr(Any([Bytes()], "foo")),
+            "Any([%r], 'foo', metavar=None, default=missing, optional=False, remaining=False" % bytes
+        )
+
+
 class IntegerTestCase(TestCase):
     def test_convert(self):
         integer = Integer()
@@ -153,7 +168,24 @@ class ComplexTestCase(TestCase):
         self.assert_equal(complex.convert("1j"), 1j)
 
 
+class NumberTestCase(TestCase):
+    def test_repr(self):
+        self.assert_equal(
+            repr(Number()),
+            "Number(use_decimal=False, metavar=None, default=missing, optional=False, remaining=False)"
+        )
+
+
+class ChoiceTestCase(TestCase):
+    def test_repr(self):
+        integer = Integer()
+        self.assert_equal(
+            repr(Choice(integer, [1, 2])),
+            "Choice(%r, [1, 2], metavar=None)" % integer
+        )
+
+
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
-    ComplexTestCase, BytesTestCase
+    ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase, ChoiceTestCase
 ])
