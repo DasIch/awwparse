@@ -104,6 +104,24 @@ class IntegerTestCase(TestCase):
         with self.assert_raises(UserTypeError):
             integer.convert("1.0")
 
+    def test_parse(self):
+        action = TestAction()
+        action.add_option("foo", Option("a", Integer()))
+        self.assert_equal(action.run(["-a", "1"]), {"foo": 1})
+
+        action.add_option("bar", Option("b", Integer(remaining=True)))
+        self.assert_equal(
+            action.run(["-b", "1", "2", "3"]),
+            {"bar": [1, 2, 3]}
+        )
+
+        action.add_option(
+            "baz",
+            Option("c", Integer(), Integer(optional=True))
+        )
+        self.assert_equal(action.run(["-c", "1"]), {"baz": [1]})
+        self.assert_equal(action.run(["-c", "1", "2"]), {"baz": [1, 2]})
+
 
 class FloatingTestCaseMixin(object):
     type = None
