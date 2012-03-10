@@ -104,9 +104,13 @@ class Action(object):
         is_option.__doc__ = doc
         return is_option
 
-    is_short_option = make_is_option("is_short_option", "option_prefixes")
+    is_short_option = make_is_option(
+        "is_short_option",
+        "abbreviated_option_prefixes"
+    )
     is_long_option = make_is_option(
-        "is_long_option", "abbreviated_option_prefixes"
+        "is_long_option",
+        "option_prefixes"
     )
     del make_is_option
 
@@ -123,45 +127,39 @@ class Action(object):
                 return argument.lstrip(prefix)
         return argument
 
-    def get_matches(self, argument):
+    def get_match(self, argument):
         modified_argument = argument
         if self.is_command(argument):
-            yield self.commands[argument]
+            return argument, self.commands[argument], ""
         else:
             modified_argument = argument
             for name, option in self.options.iteritems():
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
-                    yield name, option, modified_argument
-
-    def parse(self, arguments):
-        arguments = iter(arguments)
-        for argument in arguments:
-            try:
-                for name, match, modified in self.get_matches(argument):
-                    if modified:
-                        raise UnexpectedOption(
-                            argument, self.strip_prefix(modified)[0]
-                        )
-                    yield name, match
-                    if self.is_command(argument):
-                        raise StopIteration("command")
-            except StopIteration:
-                if self.is_option(argument):
-                    raise UnexpectedOption(argument)
-                raise
+                    return name, option, modified_argument
+        raise RuntimeError("no match: %r" % argument)
 
     def run(self, arguments, defaults=None):
         arguments = iter(arguments)
         namespace = self.defaults.copy()
         if defaults is not None:
             namespace.update(defaults)
-        for name, parsed in self.parse(arguments):
-            if isinstance(parsed, Parser):
-                namespace = parsed.parse(self, namespace, name, arguments)
-            else:
-                parsed.run(arguments, namespace)
-                return None
+        for argument in arguments:
+            if self.is_command(argument):
+                self.commands[argument].run(arguments, namespace)
+                return
+            elif self.is_long_option(argument):
+                name, option, _ = self.get_match(argument)
+                namespace = option.parse(self, namespace, name, arguments)
+            elif self.is_short_option(argument):
+                previous_modified = argument
+                name, option, modified = self.get_match(argument)
+                while modified != previous_modified:
+                    namespace = option.parse(self, namespace, name, arguments)
+                    previous_modified = modified
+                    if not modified:
+                        break
+                    name, option, modified = self.get_match(modified)
         return self.main(**namespace)
 
     def main(self, **kwargs):
@@ -259,16 +257,14 @@ class Option(Matcher, Parser):
         if argument == self.long:
             return True, ""
         if argument.startswith(self.abbreviation_prefix):
-            options = list(argument[len(self.abbreviation_prefix):])
-            try:
-                options.remove(self.abbreviation)
-            except ValueError:
-                return False, argument
-            else:
-                if options:
-                    return True, self.abbreviation_prefix + "".join(options)
+            stripped = argument.lstrip(self.abbreviation_prefix)
+            abbreviation, remaining = stripped[0], stripped[1:]
+            if stripped[0] == self.abbreviation:
+                if remaining:
+                    modified = self.abbreviation_prefix + remaining
                 else:
-                    return True, ""
+                    modified = ""
+                return True, modified
         return False, argument
 
     def parse(self, action, namespace, name, arguments):

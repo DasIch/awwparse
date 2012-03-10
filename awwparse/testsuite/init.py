@@ -138,5 +138,16 @@ class CLITestCase(TestCase):
         with self.assert_raises(NotImplementedError):
             CLI().run([])
 
+    def test_multiple_abbreviations(self):
+        cli = make_cli({
+            "a": Option("a", Bytes()),
+            "b": Option("b", Bytes()),
+            "c": Option("c", Bytes())
+        })()
+        self.assert_equal(
+            cli.run(["-abc", "foo", "bar", "baz"]),
+            {"a": "foo", "b": "bar", "c": "baz"}
+        )
+
 
 suite = make_suite([ActionTestCase, OptionTestCase, CLITestCase])
