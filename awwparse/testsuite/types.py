@@ -39,23 +39,42 @@ class TypesTestCase(TestCase):
         )
 
 
-class BytesTestCase(TestCase):
-    def test_parse(self):
+def make_parse_test(type, single, remaining, optional):
+    def parse_test(self):
         action = TestAction()
-        action.add_option("foo", Option("a", Bytes()))
-        self.assert_equal(action.run(["-a", "foo"]), {"foo": "foo"})
+        action.add_option("foo", Option("a", type()))
+        for args, expected in single:
+            self.assert_equal(
+                action.run(["-a"] + args),
+                {"foo": expected}
+            )
 
-        action.add_option("bar", Option("b", Bytes(remaining=True)))
-        self.assert_equal(action.run(["-b", "foo", "bar", "baz"]), {
-            "bar": ["foo", "bar", "baz"]
-        })
+        action.add_option("bar", Option("b", type(remaining=True)))
+        for args, expected in remaining:
+            self.assert_equal(
+                action.run(["-b"] + args),
+                {"bar": expected}
+            )
 
-        action.add_option("baz", Option("c", Bytes(), Bytes(optional=True)))
-        self.assert_equal(action.run(["-c", "foo"]), {"baz": ["foo"]})
-        self.assert_equal(
-            action.run(["-c", "foo", "bar"]),
-            {"baz": ["foo", "bar"]}
-        )
+        action.add_option("baz", Option("c", type(), type(optional=True)))
+        for args, expected in optional:
+            self.assert_equal(
+                action.run(["-c"] + args),
+                {"baz": expected}
+            )
+    return parse_test
+
+
+class BytesTestCase(TestCase):
+    test_parse = make_parse_test(
+        Bytes,
+        [(["foo"], "foo")],
+        [(["foo", "bar", "baz"], ["foo", "bar", "baz"])],
+        [
+            (["foo"], ["foo"]),
+            (["foo", "bar"], ["foo", "bar"])
+        ]
+    )
 
 
 class StringTestCase(TestCase):
@@ -73,34 +92,15 @@ class StringTestCase(TestCase):
         with self.assert_raises(UserTypeError):
             string.decode(u"ündecödäble".encode("utf-8"), "ascii")
 
-    def test_parse(self):
-        action = TestAction()
-        action.add_option("foo", Option("a", String()))
-        self.assert_equal(
-            action.run(["-a", u"ä".encode("utf-8")]),
-            {"foo": u"ä"}
-        )
-
-        action.add_option("bar", Option("b", String(remaining=True)))
-        self.assert_equal(
-            action.run([
-                "-b",
-                u"ä".encode("utf-8"),
-                u"ö".encode("utf-8"),
-                u"ü".encode("utf-8")
-            ]),
-            {"bar": [u"ä", u"ö", u"ü"]}
-        )
-
-        action.add_option("baz", Option("c", String(), String(optional=True)))
-        self.assert_equal(
-            action.run(["-c", u"ä".encode("utf-8")]),
-            {"baz": [u"ä"]}
-        )
-        self.assert_equal(
-            action.run(["-c", u"ä".encode("utf-8"), u"ö".encode("utf-8")]),
-            {"baz": [u"ä", u"ö"]}
-        )
+    test_parse = make_parse_test(
+        String,
+        [([u"ä".encode("utf-8")], u"ä")],
+        [([c.encode("utf-8") for c in u"äöü"], list(u"äöü"))],
+        [
+            ([u"ä".encode("utf-8")], [u"ä"]),
+            ([c.encode("utf-8") for c in u"äö"], [u"ä", u"ö"])
+        ]
+    )
 
 
 class AnyTestCase(TestCase):
@@ -119,23 +119,15 @@ class IntegerTestCase(TestCase):
         with self.assert_raises(UserTypeError):
             integer.convert("1.0")
 
-    def test_parse(self):
-        action = TestAction()
-        action.add_option("foo", Option("a", Integer()))
-        self.assert_equal(action.run(["-a", "1"]), {"foo": 1})
-
-        action.add_option("bar", Option("b", Integer(remaining=True)))
-        self.assert_equal(
-            action.run(["-b", "1", "2", "3"]),
-            {"bar": [1, 2, 3]}
-        )
-
-        action.add_option(
-            "baz",
-            Option("c", Integer(), Integer(optional=True))
-        )
-        self.assert_equal(action.run(["-c", "1"]), {"baz": [1]})
-        self.assert_equal(action.run(["-c", "1", "2"]), {"baz": [1, 2]})
+    test_parse = make_parse_test(
+        Integer,
+        [(["1"], 1)],
+        [(["1", "2", "3"], [1, 2, 3])],
+        [
+            (["1"], [1]),
+            (["1", "2"], [1, 2])
+        ]
+    )
 
 
 class FloatingTestCaseMixin(object):
