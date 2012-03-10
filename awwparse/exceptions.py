@@ -29,11 +29,7 @@ class UnexpectedOption(CLIError):
 
 
 class UnexpectedArgument(CLIError):
-    def __init__(self, name):
-        CLIError.__init__(self, "%(name)s is unexpected" % {
-            "name": name
-        })
-        self.name = name
+    pass
 
 
 class ArgumentMissing(CLIError):

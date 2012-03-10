@@ -9,7 +9,8 @@
 from awwparse import store, append, add, CLI, Option, Bytes, Command, Action
 from awwparse.utils import missing
 from awwparse.exceptions import (
-    ArgumentMissing, CommandMissing, OptionConflict, CommandConflict
+    ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
+    UnexpectedArgument
 )
 from awwparse.testsuite import TestCase, make_suite
 
@@ -163,6 +164,15 @@ class ActionTestCase(TestCase):
 
         with self.assert_raises(NotImplementedError):
             Action().run([])
+
+        with self.assert_raises(UnexpectedArgument):
+            Action().run(["--unexpected"])
+
+        with self.assert_raises(UnexpectedArgument):
+            Action().run(["-u"])
+
+        with self.assert_raises(UnexpectedArgument):
+            Action().run(["unexpected"])
 
 
     def test_multiple_abbreviations(self):

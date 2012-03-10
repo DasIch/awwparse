@@ -13,7 +13,7 @@ from itertools import takewhile
 from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import (
     UnexpectedOption, EndOptionParsing, CommandMissing, OptionConflict,
-    CommandConflict
+    CommandConflict, UnexpectedArgument
 )
 
 # imported for the API
@@ -173,13 +173,17 @@ class Action(object):
         if defaults is not None:
             namespace.update(defaults)
         for argument in arguments:
+            print argument
             if self.is_command(argument):
+                print "is command"
                 self.commands[argument].run(arguments, namespace)
                 return
             elif self.is_long_option(argument):
+                print "is long option"
                 name, option, _ = self.get_match(argument)
                 namespace = option.parse(self, namespace, name, arguments)
             elif self.is_short_option(argument):
+                print "is short option"
                 previous_modified = argument
                 name, option, modified = self.get_match(argument)
                 while modified != previous_modified:
@@ -188,6 +192,8 @@ class Action(object):
                     if not modified:
                         break
                     name, option, modified = self.get_match(modified)
+            else:
+                raise UnexpectedArgument("%r is unexpected" % argument)
         return self.main(**namespace)
 
     def main(self, **kwargs):
