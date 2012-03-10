@@ -65,6 +65,7 @@ class String(Type):
     error_method = "replace"
 
     def get_encoding(self, action):
+        return getattr(action, "stdin.encoding", locale.getpreferredencoding())
         return action.stdin.encoding or locale.getpreferredencoding()
 
     def decode(self, bytes, encoding):

@@ -67,6 +67,35 @@ class StringTestCase(TestCase):
         with self.assert_raises(UserTypeError):
             string.decode(u"ündecödäble".encode("utf-8"), "ascii")
 
+    def test_parse(self):
+        action = TestAction()
+        action.add_option("foo", Option("a", String()))
+        self.assert_equal(
+            action.run(["-a", u"ä".encode("utf-8")]),
+            {"foo": u"ä"}
+        )
+
+        action.add_option("bar", Option("b", String(remaining=True)))
+        self.assert_equal(
+            action.run([
+                "-b",
+                u"ä".encode("utf-8"),
+                u"ö".encode("utf-8"),
+                u"ü".encode("utf-8")
+            ]),
+            {"bar": [u"ä", u"ö", u"ü"]}
+        )
+
+        action.add_option("baz", Option("c", String(), String(optional=True)))
+        self.assert_equal(
+            action.run(["-c", u"ä".encode("utf-8")]),
+            {"baz": [u"ä"]}
+        )
+        self.assert_equal(
+            action.run(["-c", u"ä".encode("utf-8"), u"ö".encode("utf-8")]),
+            {"baz": [u"ä", u"ö"]}
+        )
+
 
 class IntegerTestCase(TestCase):
     def test_convert(self):
