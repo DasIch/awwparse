@@ -7,7 +7,13 @@
     :license: BSD, see LICENSE.rst for details
 """
 import unittest
+import re
 from itertools import imap, chain
+
+
+_begin_word_re = re.compile(r"_([a-z])")
+def to_unittest_identifier(identifier):
+    return _begin_word_re.sub(lambda m: m.group(1).upper(), identifier)
 
 
 class TestCase(unittest.TestCase):
@@ -23,11 +29,11 @@ class TestCase(unittest.TestCase):
     def tearDown(self):
         self.teardown()
 
-    def assert_equal(self, *args, **kwargs):
-        return self.assertEqual(*args, **kwargs)
-
-    def assert_raises(self, *args, **kwargs):
-        return self.assertRaises(*args, **kwargs)
+    def __getattr__(self, attrname):
+        try:
+            return getattr(self, to_unittest_identifier(attrname))
+        except AttributeError:
+            raise AttributeError(attrname)
 
 
 def make_suite(test_cases):
