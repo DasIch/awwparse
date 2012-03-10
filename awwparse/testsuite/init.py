@@ -135,6 +135,13 @@ class OptionTestCase(TestCase):
 
 
 class ActionTestCase(TestCase):
+    def test_option_shorts_and_longs(self):
+        action = Action()
+        action.add_option("foo", Option("a", Bytes()))
+        action.add_option("bar", Option("abc", Bytes()))
+        self.assert_not_in(None, action.option_shorts)
+        self.assert_not_in(None, action.option_longs)
+
     def test_add_option(self):
         action = Action()
         a = Option("a", "foobar", Bytes())

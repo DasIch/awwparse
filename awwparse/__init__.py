@@ -52,36 +52,29 @@ class Action(object):
             self.add_command(name, command.copy())
         self.parent = None
 
-    def make_option_property(name, attrname, doc=None):
-        def option_property(self):
-            return {
-                getattr(option, attrname)
-                for option in self.options.itervalues()
-            }
-        option_property.__name__ = name
-        option_property.__doc__ = doc
-        return property(option_property)
+    @property
+    def option_prefixes(self):
+        return {option.name_prefix for option in self.options.itervalues()}
 
-    option_prefixes = make_option_property("option_prefixes", "name_prefix")
-    abbreviated_option_prefixes = make_option_property(
-        "abbreviated_option_prefixes",
-        "abbreviation_prefix"
-    )
-    del make_option_property
+    @property
+    def abbreviated_option_prefixes(self):
+        return {
+            option.abbreviation_prefix for option in self.options.itervalues()
+        }
 
-    def make_option_dict_property(name, attrname, doc=None):
-        def option_dict_property(self):
-            return {
-                getattr(option, attrname): option
-                for option in self.options.itervalues()
-            }
-        option_dict_property.__name__ = name
-        option_dict_property.__doc__ = doc
-        return property(option_dict_property)
+    @property
+    def option_shorts(self):
+        return {
+            option.short: option for option in self.options.itervalues()
+            if option.short is not None
+        }
 
-    option_shorts = make_option_dict_property("option_shorts", "short")
-    option_longs = make_option_dict_property("option_longs", "long")
-    del make_option_dict_property
+    @property
+    def option_longs(self):
+        return {
+            option.long: option for option in self.options.itervalues()
+            if option.long is not None
+        }
 
     @property
     def defaults(self):
