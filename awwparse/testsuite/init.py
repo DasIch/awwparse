@@ -119,6 +119,13 @@ class OptionTestCase(TestCase):
             {"option": ["foo", "bar"]}
         )
 
+    def test_matches(self):
+        option = Option("o", "option", Bytes())
+        self.assert_equal(option.matches("-a"), (False, "-a"))
+        self.assert_equal(option.matches("-o"), (True, ""))
+        self.assert_equal(option.matches("--asd"), (False, "--asd"))
+        self.assert_equal(option.matches("--option"), (True, ""))
+
 
 class CLITestCase(TestCase):
     def test_run(self):
