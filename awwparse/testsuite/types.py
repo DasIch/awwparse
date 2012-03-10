@@ -141,15 +141,28 @@ class FloatingTestCaseMixin(object):
         with self.assert_raises(UserTypeError):
             floating.convert("1j")
 
+    _parse_test = (
+        [(["1.0"], 1.0)],
+        [(["1.0", "2.0", "3.0"], [1.0, 2.0, 3.0])],
+        [
+            (["1.0"], [1.0]),
+            (["1.0", "2.0"], [1.0, 2.0])
+        ]
+    )
+
 
 class FloatTestCase(FloatingTestCaseMixin, TestCase):
     type = Float
     floating_type = float
 
+    test_parse = make_parse_test(Float, *FloatingTestCaseMixin._parse_test)
+
 
 class DecimalTestCase(FloatingTestCaseMixin, TestCase):
     type = Decimal
     floating_type = decimal.Decimal
+
+    test_parse = make_parse_test(Decimal, *FloatingTestCaseMixin._parse_test)
 
 
 class ComplexTestCase(TestCase):
