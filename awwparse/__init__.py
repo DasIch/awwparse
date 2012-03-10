@@ -12,8 +12,8 @@ from itertools import takewhile
 
 from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import (
-    UnexpectedOption, EndOptionParsing, CommandMissing, OptionConflict,
-    CommandConflict, UnexpectedArgument
+    EndOptionParsing, CommandMissing, OptionConflict, CommandConflict,
+    UnexpectedArgument
 )
 
 # imported for the API

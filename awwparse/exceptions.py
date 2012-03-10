@@ -15,17 +15,7 @@ class CLIError(Exception):
 
 
 class UnexpectedOption(CLIError):
-    def __init__(self, name, abbreviation=None):
-        if abbreviation is None:
-            message = "%(name)s is unexpected"
-        else:
-            message = "%(abbreviation)s in %(name)s is unexpected"
-        CLIError.__init__(self, message % {
-            "name": name,
-            "abbreviation": abbreviation
-        })
-        self.name = name
-        self.abbreviation = abbreviation
+    pass
 
 
 class UnexpectedArgument(CLIError):
