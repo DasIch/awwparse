@@ -173,23 +173,17 @@ class Action(object):
         if defaults is not None:
             namespace.update(defaults)
         for argument in arguments:
-            if self.is_command(argument):
-                self.commands[argument].run(arguments, namespace)
-                return
-            elif self.is_long_option(argument):
-                name, option, _ = self.get_match(argument)
-                namespace = option.parse(self, namespace, name, arguments)
-            elif self.is_short_option(argument):
-                previous_modified = argument
-                name, option, modified = self.get_match(argument)
-                while modified != previous_modified:
-                    namespace = option.parse(self, namespace, name, arguments)
-                    previous_modified = modified
-                    if not modified:
-                        break
-                    name, option, modified = self.get_match(modified)
-            else:
-                raise UnexpectedArgument("%r is unexpected" % argument)
+            previous_modified = argument
+            name, match, modified = self.get_match(argument)
+            while modified != previous_modified:
+                if hasattr(match, "run"):
+                    match.run(arguments, namespace)
+                    return
+                namespace = match.parse(self, namespace, name, arguments)
+                previous_modified = modified
+                if not modified:
+                    break
+                name, option, modified = self.get_match(modified)
         return self.main(**namespace)
 
     def main(self, **kwargs):
