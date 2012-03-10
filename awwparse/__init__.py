@@ -12,7 +12,8 @@ from itertools import takewhile
 
 from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import (
-    UnexpectedOption, EndOptionParsing, CommandMissing, OptionConflict
+    UnexpectedOption, EndOptionParsing, CommandMissing, OptionConflict,
+    CommandConflict
 )
 
 # imported for the API
@@ -113,7 +114,11 @@ class Action(object):
             )
         self.options[name] = option
 
-    def add_command(self, name, command):
+    def add_command(self, name, command, force=False):
+        if not force and name in self.commands:
+            raise CommandConflict("given command %r conflicts with %r" % (
+                command, self.commands[name]
+            ))
         command.parent = self
         self.commands[name] = command
 

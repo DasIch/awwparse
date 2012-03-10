@@ -8,7 +8,9 @@
 """
 from awwparse import store, append, add, CLI, Option, Bytes, Command, Action
 from awwparse.utils import missing
-from awwparse.exceptions import ArgumentMissing, CommandMissing, OptionConflict
+from awwparse.exceptions import (
+    ArgumentMissing, CommandMissing, OptionConflict, CommandConflict
+)
 from awwparse.testsuite import TestCase, make_suite
 
 
@@ -144,6 +146,13 @@ class ActionTestCase(TestCase):
             action.add_option("foo", Option("something", Bytes()))
         action.add_option("foo", Option("something", Bytes()), force=True)
         self.assert_equal(action.options["foo"].name, "something")
+
+    def test_add_command(self):
+        action = Action()
+        action.add_command("foobar", Command())
+        action.add_command("foobar", Command(), force=True)
+        with self.assert_raises(CommandConflict):
+            action.add_command("foobar", Command())
 
     def test_run(self):
         class TestAction(Action):
