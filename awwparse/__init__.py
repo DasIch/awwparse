@@ -244,15 +244,10 @@ class Option(Matcher, Parser):
     def matches(self, argument):
         if argument == self.long:
             return True, ""
-        if argument.startswith(self.abbreviation_prefix):
-            stripped = argument.lstrip(self.abbreviation_prefix)
-            abbreviation, remaining = stripped[0], stripped[1:]
-            if stripped[0] == self.abbreviation:
-                if remaining:
-                    modified = self.abbreviation_prefix + remaining
-                else:
-                    modified = ""
-                return True, modified
+        elif self.short is not None and argument.startswith(self.short):
+            stripped = argument.lstrip(self.short)
+            modified = self.abbreviation_prefix + stripped if stripped else ""
+            return True, modified
         return False, argument
 
     def parse(self, action, namespace, name, arguments):
