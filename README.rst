@@ -2,6 +2,6 @@ Awwparse -- because the command line needs love too
 ===================================================
 
 This is an experiment in creating a usable alternative to argparse.
-There is no documentation and there are no tests so don't use it, yet. If you
-still do for some reason don't come complaining unless you have a pull request
-or it is embarassingly obvious.
+There is no documentation and the API is unstable which makes it unsuitable
+for anything but small experiments. Due to the early stage don't expect pull
+requests to be accepted as the design may still change.
