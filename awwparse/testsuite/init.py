@@ -237,4 +237,5 @@ class CommandTestCase(TestCase):
         C().run(["b"])
         self.assert_equal(results, ["a", "b"])
 
+
 suite = make_suite([ActionTestCase, OptionTestCase, CommandTestCase])
