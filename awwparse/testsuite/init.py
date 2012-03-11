@@ -196,6 +196,17 @@ class CommandTestCase(TestCase):
         with self.assert_raises(UnexpectedArgument):
             command.run(["-a"])
 
+    def test_main(self):
+        class TestCommand(Command):
+            options = {
+                "foo": Option("a", Bytes()),
+                "bar": Option("b", Bytes())
+            }
+
+            def main(self, foo, bar):
+                assert foo == "foo"
+                assert bar == "bar"
+        TestCommand().run(["-a", "foo", "-b", "bar"])
 
     def test_multiple_abbreviations(self):
         command = make_command({
