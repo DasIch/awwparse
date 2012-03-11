@@ -174,7 +174,7 @@ class Command(object):
             while modified != previous_modified:
                 if hasattr(match, "run"):
                     match.run(arguments, namespace)
-                    return self.main(**namespace)
+                    return
                 namespace = match.parse(self, namespace, name, arguments)
                 previous_modified = modified
                 if not modified:

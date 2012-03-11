@@ -219,5 +219,22 @@ class CommandTestCase(TestCase):
             {"a": "foo", "b": "bar", "c": "baz"}
         )
 
+    def test_subcommands(self):
+        results = []
+        class A(Command):
+            def main(self):
+                results.append("a")
+
+        class B(Command):
+            def main(self):
+                results.append("b")
+
+        class C(Command):
+            commands = {"a": A(), "b": B()}
+
+        C().run(["a"])
+        self.assert_equal(results, ["a"])
+        C().run(["b"])
+        self.assert_equal(results, ["a", "b"])
 
 suite = make_suite([ActionTestCase, OptionTestCase, CommandTestCase])
