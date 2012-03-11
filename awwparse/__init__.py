@@ -7,6 +7,7 @@
     :license: BSD, see LICENSE.rst for details
 """
 import sys
+from collections import deque
 
 from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import (
@@ -23,6 +24,34 @@ assert (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type,
     Boolean, Last, List, Set, Adder
 )
+
+
+class Arguments(object):
+    def __init__(self, arguments):
+        self._arguments = iter(arguments)
+        self._remaining = deque()
+        self.trace = []
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self._remaining:
+            argument = self._remaining.popleft()
+        else:
+            argument = self._arguments.next()
+        self.trace.append(argument)
+        return argument
+
+    def rewind(self):
+        self._remaining.append(self.trace.pop())
+
+    def __repr__(self):
+        return "<%s(%r) %r>" % (
+            self.__class__.__name__,
+            self._arguments,
+            self.trace
+        )
 
 
 class Command(object):

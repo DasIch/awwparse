@@ -6,7 +6,7 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse import Option, Bytes, Command, Last, List
+from awwparse import Option, Bytes, Command, Last, List, Arguments
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
@@ -221,4 +221,27 @@ class CommandTestCase(TestCase):
         B().run(["-a", "bar", "spam"])
 
 
-suite = make_suite([OptionTestCase, CommandTestCase])
+class ArgumentsTestCase(TestCase):
+    def test_rewind(self):
+        arguments = Arguments(["foo", "bar"])
+        self.assert_equal(arguments.next(), "foo")
+        self.assert_equal(arguments.trace, ["foo"])
+        arguments.rewind()
+        self.assert_equal(arguments.trace, [])
+        self.assert_equal(arguments.next(), "foo")
+
+    def test_repr(self):
+        args = iter(["foo", "bar"])
+        arguments = Arguments(args)
+        self.assert_equal(
+            repr(arguments),
+            "<Arguments(%r) []>" % args
+        )
+        arguments.next()
+        self.assert_equal(
+            repr(arguments),
+            "<Arguments(%r) ['foo']>" % args
+        )
+
+
+suite = make_suite([OptionTestCase, CommandTestCase, ArgumentsTestCase])
