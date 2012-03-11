@@ -10,10 +10,10 @@ import unittest
 import re
 from itertools import imap, chain
 
-from awwparse import Action
+from awwparse import Command
 
 
-class TestAction(Action):
+class TestCommand(Command):
     def main(self, **kwargs):
         return kwargs
 

@@ -43,7 +43,7 @@ def add(namespace, name, result):
     return namespace
 
 
-class Action(object):
+class Command(object):
     inherited_instance_attributes = frozenset(["stdin", "stdout", "stderr"])
     options = {}
     commands = {}
@@ -174,7 +174,7 @@ class Action(object):
             while modified != previous_modified:
                 if hasattr(match, "run"):
                     match.run(arguments, namespace)
-                    return
+                    return self.main(**namespace)
                 namespace = match.parse(self, namespace, name, arguments)
                 previous_modified = modified
                 if not modified:
@@ -291,19 +291,13 @@ class Option(object):
         )
 
 
-class Command(Action):
-    """
-    Represents what an application is supposed to do.
-    """
-
-
-class CLI(Action):
+class CLI(Command):
     """
     Represents the command line interface of an application.
     """
     def __init__(self, application_name=sys.argv[0], stdin=sys.stdin,
                  stdout=sys.stdout, stderr=sys.stderr, exit=sys.exit):
-        Action.__init__(self)
+        Command.__init__(self)
         self.application_name = application_name
         self.stdin = stdin
         self.stdout = stdout
@@ -311,4 +305,4 @@ class CLI(Action):
         self.exit = exit
 
     def run(self, arguments=sys.argv[1:]):
-        return Action.run(self, arguments)
+        return Command.run(self, arguments)

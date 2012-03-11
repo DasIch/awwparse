@@ -14,7 +14,7 @@ from awwparse import (
     Option, Type, Any, Number, Choice, Boolean
 )
 from awwparse.exceptions import UserTypeError
-from awwparse.testsuite import TestCase, make_suite, TestAction
+from awwparse.testsuite import TestCase, make_suite, TestCommand
 
 
 class TypesTestCase(TestCase):
@@ -41,25 +41,25 @@ class TypesTestCase(TestCase):
 
 def make_parse_test(type, single, remaining, optional):
     def parse_test(self):
-        action = TestAction()
-        action.add_option("foo", Option("a", type()))
+        command = TestCommand()
+        command.add_option("foo", Option("a", type()))
         for args, expected in single:
             self.assert_equal(
-                action.run(["-a"] + args),
+                command.run(["-a"] + args),
                 {"foo": expected}
             )
 
-        action.add_option("bar", Option("b", type(remaining=True)))
+        command.add_option("bar", Option("b", type(remaining=True)))
         for args, expected in remaining:
             self.assert_equal(
-                action.run(["-b"] + args),
+                command.run(["-b"] + args),
                 {"bar": expected}
             )
 
-        action.add_option("baz", Option("c", type(), type(optional=True)))
+        command.add_option("baz", Option("c", type(), type(optional=True)))
         for args, expected in optional:
             self.assert_equal(
-                action.run(["-c"] + args),
+                command.run(["-c"] + args),
                 {"baz": expected}
             )
     return parse_test
@@ -207,14 +207,14 @@ class NumberTestCase(TestCase):
 
 class BooleanTestCase(TestCase):
     def test_parse(self):
-        action = TestAction()
-        action.add_option("foo", Option("a", Boolean()))
-        self.assert_equal(action.run([]), {"foo": False})
-        self.assert_equal(action.run(["-a"]), {"foo": True})
+        command = TestCommand()
+        command.add_option("foo", Option("a", Boolean()))
+        self.assert_equal(command.run([]), {"foo": False})
+        self.assert_equal(command.run(["-a"]), {"foo": True})
 
-        action.add_option("bar", Option("b", Boolean(default=True)))
-        self.assert_equal(action.run([]), {"foo": False, "bar": True})
-        self.assert_equal(action.run(["-b"]), {"foo": False, "bar": False})
+        command.add_option("bar", Option("b", Boolean(default=True)))
+        self.assert_equal(command.run([]), {"foo": False, "bar": True})
+        self.assert_equal(command.run(["-b"]), {"foo": False, "bar": False})
 
 
 
@@ -227,7 +227,7 @@ class ChoiceTestCase(TestCase):
         )
 
     def test_parse(self):
-        action = TestAction()
+        action = TestCommand()
         action.add_option("foo", Option("a", Choice(Integer(), [1, 2])))
         self.assert_equal(action.run(["-a", "1"]), {"foo": 1})
         self.assert_equal(action.run(["-a", "2"]), {"foo": 2})
