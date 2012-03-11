@@ -100,7 +100,7 @@ class Type(object):
         self.remaining = remaining
 
     def parse(self, command, arguments):
-        return NotImplementedError()
+        raise NotImplementedError()
 
     def get_next_argument(self, command, arguments):
         try:
