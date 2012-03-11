@@ -35,3 +35,10 @@ class Missing(object):
 
 missing = Missing()
 del Missing
+
+
+def force_list(object):
+    try:
+        return list(object)
+    except TypeError:
+        return [object]

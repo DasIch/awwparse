@@ -213,6 +213,14 @@ class ChoiceTestCase(TestCase):
             "Choice(%r, [1, 2], metavar=None)" % integer
         )
 
+    def test_parse(self):
+        action = TestAction()
+        action.add_option("foo", Option("a", Choice(Integer(), [1, 2])))
+        self.assert_equal(action.run(["-a", "1"]), {"foo": 1})
+        self.assert_equal(action.run(["-a", "2"]), {"foo": 2})
+        with self.assert_raises(UserTypeError):
+            action.run(["-a", "3"])
+
 
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,

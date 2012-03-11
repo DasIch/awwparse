@@ -9,7 +9,7 @@
 import locale
 import decimal
 
-from awwparse.utils import missing
+from awwparse.utils import missing, force_list
 from awwparse.exceptions import (
     UserTypeError, ArgumentMissing, EndOptionParsing
 )
@@ -191,8 +191,8 @@ class Choice(Type):
         self.choices = choices
 
     def parse(self, action, arguments):
-        parsed = self.type(action, arguments)
-        for choice in parsed:
+        parsed = self.type.parse(action, arguments)
+        for choice in force_list(parsed):
             if choice not in self.choices:
                 raise UserTypeError(
                     "%r not in %s" % (
