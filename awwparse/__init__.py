@@ -29,6 +29,7 @@ class Command(object):
     inherited_instance_attributes = frozenset(["stdin", "stdout", "stderr"])
     options = {}
     commands = {}
+    help = None
 
     def __init__(self):
         self.options = self.options.copy()
@@ -189,6 +190,7 @@ class Option(object):
         set_attributes_from_kwargs(self, kwargs, {
             "abbreviation_prefix": "-",
             "name_prefix": "--",
+            "help": None
         })
 
     def _parse_signature(self, signature):
@@ -253,12 +255,13 @@ class Option(object):
         return self.parser.parse_and_store(command, namespace, name, arguments)
 
     def __repr__(self):
-        return "%s(%s, %r, abbreviation_prefix=%r, name_prefix=%r)" % (
+        return "%s(%s, %r, abbreviation_prefix=%r, name_prefix=%r, help=%r)" % (
             self.__class__.__name__,
             ", ".join(map(repr, filter(None, [self.abbreviation, self.name]))),
             self.parser,
             self.abbreviation_prefix,
-            self.name_prefix
+            self.name_prefix,
+            self.help
         )
 
 

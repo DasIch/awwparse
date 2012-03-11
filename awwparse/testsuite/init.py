@@ -112,7 +112,7 @@ class OptionTestCase(TestCase):
         signature = Last(Bytes())
         self.assert_equal(
             repr(Option("o", "option", signature)),
-            "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--')" % signature
+            "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--', help=None)" % signature
         )
 
 
