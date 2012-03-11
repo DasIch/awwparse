@@ -219,7 +219,9 @@ class Option(object):
         else:
             parser = self.container_type(*types)
             if parser.types[0].optional:
-                raise ValueError("first type must not be optional: %r" % types[0])
+                raise ValueError(
+                    "first type must not be optional: %r" % types[0]
+                )
         return name, abbreviation, parser
 
     @property
