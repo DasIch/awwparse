@@ -175,6 +175,8 @@ class Option(object):
     Represents how an application is supposed to do instead of the default
     behavior.
     """
+    container_type = Last
+
     def __init__(self, *signature, **kwargs):
         name, abbreviation, parser = self._parse_signature(signature)
         if abbreviation is None and name is None:
@@ -215,7 +217,7 @@ class Option(object):
         if len(types) == 1 and isinstance(types[0], ContainerType):
             parser = types[0]
         else:
-            parser = Last(*types)
+            parser = self.container_type(*types)
             if parser.types[0].optional:
                 raise ValueError("first type must not be optional: %r" % types[0])
         return name, abbreviation, parser

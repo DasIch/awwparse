@@ -6,7 +6,7 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse import Option, Bytes, Command, Last
+from awwparse import Option, Bytes, Command, Last, List
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
@@ -24,6 +24,16 @@ def make_command(options=None, commands=None, command_cls=Command):
 
 
 class OptionTestCase(TestCase):
+    def test_type_container(self):
+        class TestOption(Option):
+            container_type = List
+
+        command = make_command({"foo": TestOption("a", Bytes())})
+        self.assert_equal(
+            command.run(["-a", "foo", "-a", "bar"]),
+            {"foo": ["foo", "bar"]}
+        )
+
     def test_signature(self):
         command = make_command({"option": Option("o", Bytes(), Bytes(), Bytes())})
         for args in [["-o"], ["-o", "foo"], ["-o", "foo", "bar"]]:
