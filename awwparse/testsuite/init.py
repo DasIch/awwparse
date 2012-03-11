@@ -237,5 +237,17 @@ class CommandTestCase(TestCase):
         C().run(["b"])
         self.assert_equal(results, ["a", "b"])
 
+    def test_option_inheritance(self):
+        class A(Command):
+            def main(self, **kwargs):
+                assert "foo" in kwargs
+                assert kwargs["foo"] == "bar"
+
+        class B(Command):
+            options = {"foo": Option("a", Bytes())}
+            commands = {"spam": A()}
+
+        B().run(["-a", "bar", "spam"])
+
 
 suite = make_suite([ActionTestCase, OptionTestCase, CommandTestCase])
