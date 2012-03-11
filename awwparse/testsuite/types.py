@@ -172,6 +172,16 @@ class ComplexTestCase(TestCase):
         self.assert_equal(complex.convert("0.0"), 0.0j)
         self.assert_equal(complex.convert("1j"), 1j)
 
+    test_parse = make_parse_test(
+        Complex,
+        [(["1j"], 1j)],
+        [(["1j", "2j", "3j"], [1j, 2j, 3j])],
+        [
+            (["1j"], [1j]),
+            (["1j", "2j"], [1j, 2j])
+        ]
+    )
+
 
 class NumberTestCase(TestCase):
     def test_repr(self):
