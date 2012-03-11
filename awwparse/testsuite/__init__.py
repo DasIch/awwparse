@@ -23,6 +23,10 @@ def to_unittest_identifier(identifier):
     return _begin_word_re.sub(lambda m: m.group(1).upper(), identifier)
 
 
+def is_pep8_identifier(identifier):
+    return _begin_word_re.search(identifier) is not None
+
+
 class TestCase(unittest.TestCase):
     def setup(self):
         pass
@@ -37,10 +41,12 @@ class TestCase(unittest.TestCase):
         self.teardown()
 
     def __getattr__(self, attrname):
-        try:
-            return getattr(self, to_unittest_identifier(attrname))
-        except AttributeError:
-            raise AttributeError(attrname)
+        if is_pep8_identifier(attrname):
+            try:
+                return getattr(self, to_unittest_identifier(attrname))
+            except AttributeError:
+                raise AttributeError(attrname)
+        raise AttributeError(attrname)
 
 
 def make_suite(test_cases):

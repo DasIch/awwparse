@@ -10,9 +10,10 @@ import decimal
 from functools import partial
 
 from awwparse import (
-    Bytes, String, Integer, Float, Decimal, Complex, parse_type_signature,
-    Option, Type, Any, Number, Choice, Boolean
+    Bytes, String, Integer, Float, Decimal, Complex, Option, Type, Any, Number,
+    Choice, Boolean, Last, List, Set, Adder
 )
+from awwparse.types import parse_type_signature
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import TestCase, make_suite, TestCommand
 
@@ -24,18 +25,61 @@ class TypesTestCase(TestCase):
         self.assert_(all(not optional for optional in optionals(
             parse_type_signature((Bytes(), Bytes(), Bytes()))
         )))
-        self._assert(all(optionals(
-            parse_type_signature(([Bytes(), [Bytes(), [Bytes()]]]))
+        types = parse_type_signature([[Bytes(), [Bytes(), [Bytes()]]]])
+        self.assert_(all(optionals(
+            parse_type_signature([[Bytes(), [Bytes(), [Bytes()]]]])
         )))
         types = parse_type_signature((Bytes(), [Bytes(), Bytes()]))
-        self._assert(not types[0].optional)
-        self._assert(types[1].optional)
-        self._assert(not types[2].optional)
+        self.assert_(not types[0].optional)
+        self.assert_(types[1].optional)
+        self.assert_(not types[2].optional)
 
+
+class TypeTestCase(TestCase):
     def test_repr(self):
         self.assert_equal(
             repr(Type()),
-            "Type(metavar=None, default=missing, optional=False, remaining=False"
+            "Type(metavar=None, default=missing, optional=False, remaining=False)"
+        )
+
+
+class LastTestCase(TestCase):
+    def test_parse_and_store(self):
+        command = TestCommand()
+        command.add_option("foo", Option("a", Last(Bytes())))
+        self.assert_equal(
+            command.run(["-a", "foo", "-a", "bar"]),
+            {"foo": "bar"}
+        )
+
+
+class ListTestCase(TestCase):
+    def test_parse_and_store(self):
+        command = TestCommand()
+        command.add_option("foo", Option("a", List(Bytes())))
+        self.assert_equal(
+            command.run(["-a", "foo", "-a", "bar"]),
+            {"foo": ["foo", "bar"]}
+        )
+
+
+class SetTestCase(TestCase):
+    def test_parse_and_store(self):
+        command = TestCommand()
+        command.add_option("foo", Option("a", Set(Bytes())))
+        self.assert_equal(
+            command.run(["-a", "foo", "-a", "bar"]),
+            {"foo": {"foo", "bar"}}
+        )
+
+
+class AdderTestCase(TestCase):
+    def test_parse_and_store(self):
+        command = TestCommand()
+        command.add_option("foo", Option("a", Adder(Integer())))
+        self.assert_equal(
+            command.run(["-a", "1", "-a", "1"]),
+            {"foo": 2}
         )
 
 
@@ -238,5 +282,6 @@ class ChoiceTestCase(TestCase):
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
-    ChoiceTestCase, BooleanTestCase
+    ChoiceTestCase, BooleanTestCase, TypeTestCase, TypesTestCase, LastTestCase,
+    ListTestCase, SetTestCase, AdderTestCase
 ])

@@ -7,40 +7,22 @@
     :license: BSD, see LICENSE.rst for details
 """
 import sys
-from operator import attrgetter
-from itertools import takewhile
 
 from awwparse.utils import set_attributes_from_kwargs, missing
 from awwparse.exceptions import (
-    EndOptionParsing, CommandMissing, OptionConflict, CommandConflict,
-    UnexpectedArgument
+    CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument
 )
 
 # imported for the API
 from awwparse.types import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    parse_type_signature, Type, Boolean
+    Type, Boolean, Last, List, Set, Adder, ContainerType
 )
 # keeps pyflakes happy
 assert (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type,
-    Boolean
+    Boolean, Last, List, Set, Adder
 )
-
-
-def store(namespace, name, result):
-    namespace[name] = result
-    return namespace
-
-
-def append(namespace, name, result):
-    namespace.setdefault(name, []).append(result)
-    return namespace
-
-
-def add(namespace, name, result):
-    namespace.setdefault(name, set()).add(result)
-    return namespace
 
 
 class Command(object):
@@ -194,18 +176,17 @@ class Option(object):
     behavior.
     """
     def __init__(self, *signature, **kwargs):
-        name, abbreviation, types = self._parse_signature(signature)
+        name, abbreviation, parser = self._parse_signature(signature)
         if abbreviation is None and name is None:
             raise TypeError("An abbreviation or a name has to be passed")
         if abbreviation is not None and len(abbreviation) != 1:
             raise ValueError("An abbreviation has to be one character long")
         self.name = name
         self.abbreviation = abbreviation
-        self.types = types
+        self.parser = parser
         set_attributes_from_kwargs(self, kwargs, {
             "abbreviation_prefix": "-",
             "name_prefix": "--",
-            "action": store
         })
 
     def _parse_signature(self, signature):
@@ -231,10 +212,13 @@ class Option(object):
                 "expected name or abbreviation as first argument, got %r"
                 % signature[0]
             )
-        types = parse_type_signature(types)
-        if types[0].optional:
-            raise ValueError("first type must not be optional: %r" % types[0])
-        return name, abbreviation, types
+        if len(types) == 1 and isinstance(types[0], ContainerType):
+            parser = types[0]
+        else:
+            parser = Last(*types)
+            if parser.types[0].optional:
+                raise ValueError("first type must not be optional: %r" % types[0])
+        return name, abbreviation, parser
 
     @property
     def short(self):
@@ -250,15 +234,7 @@ class Option(object):
 
     @property
     def default(self):
-        if len(self.types) == 1:
-            return self.types[0].default
-        return map(
-            attrgetter("default"),
-            takewhile(
-                lambda type: not type.optional and type.default is not missing,
-                self.types
-            )
-        ) or missing
+        return self.parser.default
 
     def matches(self, argument):
         if argument == self.long:
@@ -269,25 +245,16 @@ class Option(object):
             return True, modified
         return False, argument
 
-    def parse(self, action, namespace, name, arguments):
-        result = []
-        for type in self.types:
-            try:
-                result.append(type.parse(action, arguments))
-            except EndOptionParsing:
-                break
-        return self.action(
-            namespace, name, result if len(self.types) > 1 else result[0]
-        )
+    def parse(self, command, namespace, name, arguments):
+        return self.parser.parse_and_store(command, namespace, name, arguments)
 
     def __repr__(self):
-        return "%s(%s, %s, abbreviation_prefix=%r, name_prefix=%r, action=%r)" % (
+        return "%s(%s, %r, abbreviation_prefix=%r, name_prefix=%r)" % (
             self.__class__.__name__,
             ", ".join(map(repr, filter(None, [self.abbreviation, self.name]))),
-            ", ".join(map(repr, self.types)),
+            self.parser,
             self.abbreviation_prefix,
-            self.name_prefix,
-            self.action.__name__
+            self.name_prefix
         )
 
 

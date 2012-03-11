@@ -8,6 +8,8 @@
 """
 import locale
 import decimal
+from operator import attrgetter
+from itertools import takewhile
 
 from awwparse.utils import missing, force_list
 from awwparse.exceptions import (
@@ -25,6 +27,68 @@ def parse_type_signature(types, _root=True):
         else:
             result.extend(parse_type_signature(type, _root=False))
     return result
+
+
+class ContainerType(object):
+    def __init__(self, *types):
+        self.types = parse_type_signature(types)
+
+    @property
+    def default(self):
+        if len(self.types) == 1:
+            return self.types[0].default
+        return map(
+            attrgetter("default"),
+            takewhile(
+                lambda type: not type.optional and type.default is not missing,
+                self.types
+            )
+        ) or missing
+
+    def parse(self, command, arguments):
+        result = []
+        for type in self.types:
+            try:
+                result.append(type.parse(command, arguments))
+            except EndOptionParsing:
+                break
+        return result if len(self.types) > 1 else result[0]
+
+    def parse_and_store(self, command, namespace, name, arguments):
+        raise NotImplementedError()
+
+    def __repr__(self):
+        return "%s(%s)" % (
+            self.__class__.__name__,
+            ", ".join(map(repr, self.types))
+        )
+
+
+class Last(ContainerType):
+    def parse_and_store(self, command, namespace, name, arguments):
+        namespace[name] = self.parse(command, arguments)
+        return namespace
+
+
+class List(ContainerType):
+    def parse_and_store(self, command, namespace, name, arguments):
+        namespace.setdefault(name, []).append(self.parse(command, arguments))
+        return namespace
+
+
+class Set(ContainerType):
+    def parse_and_store(self, command, namespace, name, arguments):
+        namespace.setdefault(name, set()).add(self.parse(command, arguments))
+        return namespace
+
+
+class Adder(ContainerType):
+    def parse_and_store(self, command, namespace, name, arguments):
+        if name in namespace:
+            namespace[name] += self.parse(command, arguments)
+        else:
+            namespace[name] = self.parse(command, arguments)
+        return namespace
 
 
 class Type(object):

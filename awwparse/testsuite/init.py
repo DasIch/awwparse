@@ -6,34 +6,13 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse import store, append, add, Option, Bytes, Command
+from awwparse import Option, Bytes, Command, Last
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
     UnexpectedArgument
 )
 from awwparse.testsuite import TestCase, make_suite
-
-
-class ActionTestCase(TestCase):
-    def test_store(self):
-        self.assert_equal(store({}, "foo", "bar"), {"foo": "bar"})
-
-    def test_append(self):
-        namespace = {}
-        self.assert_equal(append(namespace, "foo", "spam"), {"foo": ["spam"]})
-        self.assert_equal(
-            append(namespace, "foo", "eggs"),
-            {"foo": ["spam", "eggs"]}
-        )
-
-    def test_add(self):
-        namespace = {}
-        self.assert_equal(add(namespace, "foo", "spam"), {"foo": {"spam"}})
-        self.assert_equal(
-            add(namespace, "foo", "eggs"),
-            {"foo": {"spam", "eggs"}}
-        )
 
 
 def make_command(options=None, commands=None, command_cls=Command):
@@ -52,7 +31,6 @@ class OptionTestCase(TestCase):
                 command.run(args)
 
         command = make_command({"option": Option("o", Bytes(), [Bytes(), Bytes()])})
-        self.assert_(command.options["option"].types[1].optional)
         self.assert_equal(command.run(["-o", "a"]), {"option": ["a"]})
         self.assert_equal(
             command.run(["-o", "a", "b", "c"]),
@@ -65,9 +43,6 @@ class OptionTestCase(TestCase):
         command = make_command({
             "option": Option("o", Bytes(), [Bytes(), [Bytes()]])
         })
-        self.assert_(
-            all(type.optional for type in command.options["option"].types[1:])
-        )
         args = ["-o", "a", "b", "c"]
         for i in xrange(2, len(args) + 1):
             self.assert_equal(
@@ -110,21 +85,6 @@ class OptionTestCase(TestCase):
         self.assert_(command.options["option"].matches("++option"))
         self.assert_equal(command.run(["++option", "foo"]), {"option": "foo"})
 
-    def test_actions(self):
-        command = make_command({"option": Option("o", Bytes())})
-        self.assert_equal(command.run(["-o", "foobar"]), {"option": "foobar"})
-        self.assert_equal(
-            command.run(["-o", "foo", "-o", "bar"]),
-            {"option": "bar"}
-        )
-
-        command = make_command({"option": Option("o", Bytes(), action=append)})
-        self.assert_equal(command.run(["-o", "foobar"]), {"option": ["foobar"]})
-        self.assert_equal(
-            command.run(["-o", "foo", "-o", "bar"]),
-            {"option": ["foo", "bar"]}
-        )
-
     def test_matches(self):
         option = Option("o", "option", Bytes())
         self.assert_equal(option.matches("-a"), (False, "-a"))
@@ -134,14 +94,15 @@ class OptionTestCase(TestCase):
 
     def test_repr(self):
         self.assert_(
-            repr(Option("o", Bytes())).startswith("Option('o', Bytes")
+            repr(Option("o", Bytes())).startswith("Option('o', Last")
         )
         self.assert_(
-            repr(Option("option", Bytes())).startswith("Option('option', Bytes")
+            repr(Option("option", Bytes())).startswith("Option('option', Last")
         )
+        signature = Last(Bytes())
         self.assert_equal(
-            repr(Option("o", "option", Bytes())),
-            "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--', action='store')" % Bytes()
+            repr(Option("o", "option", signature)),
+            "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--')" % signature
         )
 
 
@@ -250,4 +211,4 @@ class CommandTestCase(TestCase):
         B().run(["-a", "bar", "spam"])
 
 
-suite = make_suite([ActionTestCase, OptionTestCase, CommandTestCase])
+suite = make_suite([OptionTestCase, CommandTestCase])
