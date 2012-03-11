@@ -99,16 +99,16 @@ class Type(object):
         self.optional = optional
         self.remaining = remaining
 
-    def parse(self, action, arguments):
+    def parse(self, command, arguments):
         return NotImplementedError()
 
-    def get_next_argument(self, action, arguments):
+    def get_next_argument(self, command, arguments):
         try:
             argument = arguments.next()
         except StopIteration:
             raise ArgumentMissing()
         else:
-            if action.is_option(argument):
+            if command.is_option(argument):
                 raise ArgumentMissing(argument)
             return argument
 
@@ -120,11 +120,11 @@ class Type(object):
 
 
 class Bytes(Type):
-    def parse(self, action, arguments):
+    def parse(self, command, arguments):
         if self.remaining:
             return list(arguments)
         try:
-            return self.get_next_argument(action, arguments)
+            return self.get_next_argument(command, arguments)
         except ArgumentMissing:
             if self.optional:
                 raise EndOptionParsing()
@@ -134,8 +134,8 @@ class Bytes(Type):
 class String(Type):
     error_method = "replace"
 
-    def get_encoding(self, action):
-        return getattr(action, "stdin.encoding", locale.getpreferredencoding())
+    def get_encoding(self, command):
+        return getattr(command, "stdin.encoding", locale.getpreferredencoding())
 
     def decode(self, bytes, encoding):
         try:
@@ -145,13 +145,13 @@ class String(Type):
                 "failed to decode %r with %r" % (bytes, encoding)
             )
 
-    def parse(self, action, arguments):
-        encoding = self.get_encoding(action)
+    def parse(self, command, arguments):
+        encoding = self.get_encoding(command)
         if self.remaining:
             return [self.decode(bytes, encoding) for bytes in arguments]
         try:
             return self.decode(
-                self.get_next_argument(action, arguments),
+                self.get_next_argument(command, arguments),
                 encoding
             )
         except ArgumentMissing:
@@ -171,11 +171,11 @@ class ConverterBase(Type):
         except self.type_conversion_exception:
             raise UserTypeError(self.error_message % argument)
 
-    def parse(self, action, arguments):
+    def parse(self, command, arguments):
         if self.remaining:
             return map(self.convert, arguments)
         try:
-            argument = self.get_next_argument(action, arguments)
+            argument = self.get_next_argument(command, arguments)
         except ArgumentMissing:
             if self.optional:
                 raise EndOptionParsing()
@@ -247,7 +247,7 @@ class Boolean(Type):
     def __init__(self, default=False, **kwargs):
         Type.__init__(self, default=default, **kwargs)
 
-    def parse(self, action, arguments):
+    def parse(self, command, arguments):
         return not self.default
 
 
@@ -257,8 +257,8 @@ class Choice(Type):
         self.type = type
         self.choices = choices
 
-    def parse(self, action, arguments):
-        parsed = self.type.parse(action, arguments)
+    def parse(self, command, arguments):
+        parsed = self.type.parse(command, arguments)
         for choice in force_list(parsed):
             if choice not in self.choices:
                 raise UserTypeError(
