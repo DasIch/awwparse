@@ -19,11 +19,12 @@ from awwparse.exceptions import (
 # imported for the API
 from awwparse.types import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    parse_type_signature, Type
+    parse_type_signature, Type, Boolean
 )
 # keeps pyflakes happy
 assert (
-    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type
+    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type,
+    Boolean
 )
 
 

@@ -180,6 +180,9 @@ class Number(Any):
 
 
 class Boolean(Type):
+    def __init__(self, default=False, **kwargs):
+        Type.__init__(self, default=default, **kwargs)
+
     def parse(self, action, arguments):
         return not self.default
 

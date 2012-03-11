@@ -11,7 +11,7 @@ from functools import partial
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, parse_type_signature,
-    Option, Type, Any, Number, Choice
+    Option, Type, Any, Number, Choice, Boolean
 )
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import TestCase, make_suite, TestAction
@@ -205,6 +205,19 @@ class NumberTestCase(TestCase):
     )
 
 
+class BooleanTestCase(TestCase):
+    def test_parse(self):
+        action = TestAction()
+        action.add_option("foo", Option("a", Boolean()))
+        self.assert_equal(action.run([]), {"foo": False})
+        self.assert_equal(action.run(["-a"]), {"foo": True})
+
+        action.add_option("bar", Option("b", Boolean(default=True)))
+        self.assert_equal(action.run([]), {"foo": False, "bar": True})
+        self.assert_equal(action.run(["-b"]), {"foo": False, "bar": False})
+
+
+
 class ChoiceTestCase(TestCase):
     def test_repr(self):
         integer = Integer()
@@ -224,5 +237,6 @@ class ChoiceTestCase(TestCase):
 
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
-    ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase, ChoiceTestCase
+    ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
+    ChoiceTestCase, BooleanTestCase
 ])
