@@ -190,6 +190,20 @@ class NumberTestCase(TestCase):
             "Number(use_decimal=False, metavar=None, default=missing, optional=False, remaining=False)"
         )
 
+    test_parse = make_parse_test(
+        Number,
+        [
+            (["1"], 1),
+            (["1.0"], 1.0),
+            (["1j"], 1j)
+        ],
+        [(["1", "1.0", "1j"], [1, 1.0, 1.j])],
+        [
+            (["1"], [1]),
+            (["1", "1.0"], [1, 1.0])
+        ]
+    )
+
 
 class ChoiceTestCase(TestCase):
     def test_repr(self):

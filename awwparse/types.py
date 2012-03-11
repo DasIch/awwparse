@@ -166,7 +166,7 @@ class Number(Any):
     def __init__(self, use_decimal=False, **kwargs):
         Any.__init__(
             self,
-            [Integer, Decimal if use_decimal else Float, Complex],
+            [Integer(), (Decimal if use_decimal else Float)(), Complex()],
             "%r is not a number",
             **kwargs
         )
