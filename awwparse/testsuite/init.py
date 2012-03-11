@@ -145,7 +145,7 @@ class OptionTestCase(TestCase):
         )
 
 
-class ActionTestCase(TestCase):
+class CommandTestCase(TestCase):
     def test_option_shorts_and_longs(self):
         command = Command()
         command.add_option("foo", Option("a", Bytes()))
@@ -209,4 +209,4 @@ class ActionTestCase(TestCase):
         )
 
 
-suite = make_suite([ActionTestCase, OptionTestCase, ActionTestCase])
+suite = make_suite([ActionTestCase, OptionTestCase, CommandTestCase])
