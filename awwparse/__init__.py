@@ -9,9 +9,10 @@
 import sys
 from collections import deque
 
-from awwparse.utils import set_attributes_from_kwargs, missing
+from awwparse.utils import set_attributes_from_kwargs, missing, force_list
 from awwparse.exceptions import (
-    CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument
+    CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
+    ArgumentConflict, ArgumentMissing
 )
 
 # imported for the API
@@ -54,10 +55,23 @@ class Arguments(object):
         )
 
 
+def parse_argument_signature(arguments, _root=True):
+    result = []
+    if not _root:
+        arguments[0].optional = True
+    for argument in arguments:
+        if isinstance(argument, Argument):
+            result.append(argument)
+        else:
+            result.extend(parse_argument_signature(argument, _root=False))
+    return result
+
+
 class Command(object):
     inherited_instance_attributes = frozenset(["stdin", "stdout", "stderr"])
     options = {}
     commands = {}
+    arguments = ()
     help = None
 
     def __init__(self):
@@ -65,6 +79,9 @@ class Command(object):
         self.commands = {}
         for name, command in self.__class__.commands.iteritems():
             self.add_command(name, command.copy())
+        self.arguments = parse_argument_signature(
+            force_list(self.__class__.arguments)
+        )
         self.parent = None
 
     @property
@@ -119,6 +136,14 @@ class Command(object):
             ))
         command.parent = self
         self.commands[name] = command
+
+    def add_argument(self, type):
+        if self.arguments and self.arguments[-1].remaining:
+            raise ArgumentConflict(
+                "last argument %r takes all remaining arguments"
+                % self.arguments[-1]
+            )
+        self.arguments.append(type)
 
     def __getattr__(self, name):
         if name in self.inherited_instance_attributes:
@@ -175,29 +200,102 @@ class Command(object):
                     return name, option, modified_argument
         raise UnexpectedArgument("%r is unexpected" % argument)
 
-    def run(self, arguments, defaults=None):
-        arguments = iter(arguments)
-        namespace = self.defaults.copy()
-        if defaults is not None:
-            namespace.update(defaults)
+    def run(self, arguments, default_args=None, default_kwargs=None):
+        arguments = Arguments(arguments)
+        expected_positionals = iter(self.arguments)
+        args = [] if default_args is None else default_args
+        kwargs = self.defaults.copy()
+        if default_kwargs is not None:
+            kwargs.update(default_kwargs)
         for argument in arguments:
             previous_modified = argument
-            name, match, modified = self.get_match(argument)
-            while modified != previous_modified:
-                if hasattr(match, "run"):
-                    match.run(arguments, namespace)
-                    return
-                namespace = match.parse(self, namespace, name, arguments)
-                previous_modified = modified
-                if not modified:
-                    break
-                name, option, modified = self.get_match(modified)
-        return self.main(**namespace)
+            try:
+                name, match, modified = self.get_match(argument)
+            except UnexpectedArgument as unexcepted_argument:
+                try:
+                    positional = expected_positionals.next()
+                except StopIteration:
+                    raise unexcepted_argument
+                else:
+                    arguments.rewind()
+                    args.append(positional.parse(self, arguments))
+            else:
+                while modified != previous_modified:
+                    if hasattr(match, "run"):
+                        match.run(arguments, args, kwargs)
+                        return
+                    kwargs = match.parse(self, kwargs, name, arguments)
+                    previous_modified = modified
+                    if not modified:
+                        break
+                    name, option, modified = self.get_match(modified)
+        try:
+            positional = expected_positionals.next()
+        except StopIteration:
+            pass
+        else:
+            if not positional.optional:
+                raise ArgumentMissing("expected %s" % positional.metavar)
+        return self.main(*args, **kwargs)
 
-    def main(self, **kwargs):
+    def main(self, *args, **kwargs):
         if self.commands:
             raise CommandMissing("expected a command")
         raise NotImplementedError()
+
+
+class Argument(object):
+    def __init__(self, type, metavar, default=missing, optional=False,
+                 remaining=False, help=None):
+        self.type = type
+        self.metavar = metavar
+        self.default = default
+        self.optional = optional
+        self.remaining = remaining
+        self.help = help
+
+    @property
+    def metavar(self):
+        return self.type.metavar
+
+    @metavar.setter
+    def metavar(self, new_metavar):
+        self.type.metavar = new_metavar
+
+    @property
+    def default(self):
+        return self.type.default
+
+    @default.setter
+    def default(self, new_default):
+        self.type.default = new_default
+
+    @property
+    def optional(self):
+        return self.type.optional
+
+    @optional.setter
+    def optional(self, new_optional):
+        self.type.optional = new_optional
+
+    @property
+    def remaining(self):
+        return self.type.remaining
+
+    @remaining.setter
+    def remaining(self, new_remaining):
+        self.type.remaining = new_remaining
+
+    def parse(self, command, arguments):
+        return self.type.parse(command, arguments)
+
+    def __repr__(self):
+        return "%s(%r, %r, help=%r)" % (
+            self.__class__.__name__,
+            self.type,
+            self.metavar,
+            self.help
+        )
 
 
 class Option(object):

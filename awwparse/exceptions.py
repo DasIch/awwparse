@@ -38,9 +38,17 @@ class EndOptionParsing(Exception):
     pass
 
 
-class OptionConflict(Exception):
+class Conflict(Exception):
     pass
 
 
-class CommandConflict(Exception):
+class OptionConflict(Conflict):
+    pass
+
+
+class CommandConflict(Conflict):
+    pass
+
+
+class ArgumentConflict(Conflict):
     pass
