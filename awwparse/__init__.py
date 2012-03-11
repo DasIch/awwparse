@@ -295,23 +295,6 @@ class Command(Action):
     """
     Represents what an application is supposed to do.
     """
-    def __init__(self):
-        Action.__init__(self)
-        self.run_function = None
-
-    def copy(self):
-        new = self.__class__()
-        new.run_function = self.run_function
-        return new
-
-    def main(self, **kwargs):
-        if self.run_function is None:
-            return Action.main(self, **kwargs)
-        return self.run_function(self.parent, **kwargs)
-
-    def __call__(self, func):
-        self.run_function = func
-        return self
 
 
 class CLI(Action):
