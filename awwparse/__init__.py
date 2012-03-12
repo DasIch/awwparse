@@ -267,6 +267,14 @@ class Argument(object):
     def remaining(self, new_remaining):
         self.type.remaining = new_remaining
 
+    @property
+    def usage(self):
+        if self.remaining:
+            return "[%s ...]" % self.metavar
+        elif self.optional:
+            return "[%s]" % self.metavar
+        return self.metavar
+
     def parse(self, command, arguments):
         return self.type.parse(command, arguments)
 
@@ -349,6 +357,13 @@ class Option(object):
     @property
     def default(self):
         return self.parser.default
+
+    def get_usage(self, short=True):
+        if short and self.short or not short and not self.long:
+            option = self.short
+        else:
+            option = self.long
+        return "%s %s" % (option, self.parser.usage)
 
     def matches(self, argument):
         if argument == self.long:

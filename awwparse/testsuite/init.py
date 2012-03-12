@@ -71,6 +71,19 @@ class OptionTestCase(TestCase):
         self.assert_equal(command.options["option"].default, "foobar")
         self.assert_equal(command.run([]), {"option": "foobar"})
 
+    def test_get_usage(self):
+        option = Option("a", Bytes(metavar="foo"))
+        self.assert_equal(option.get_usage(), "-a foo")
+        self.assert_equal(option.get_usage(short=False), "-a foo")
+
+        option = Option("abc", Bytes(metavar="foo"))
+        self.assert_equal(option.get_usage(), "--abc foo")
+        self.assert_equal(option.get_usage(short=False), "--abc foo")
+
+        option = Option("a", "abc", Bytes(metavar="foo"))
+        self.assert_equal(option.get_usage(), "-a foo")
+        self.assert_equal(option.get_usage(short=False), "--abc foo")
+
     def test_abbreviation_prefix(self):
         command = make_command({"option": Option("o", Bytes())})
         self.assert_equal(command.options["option"].abbreviation_prefix, "-")
@@ -264,6 +277,17 @@ class ArgumentsTestCase(TestCase):
 
 
 class ArgumentTestCase(TestCase):
+    def test_usage(self):
+        self.assert_equal(Argument(Bytes(), "foo").usage, "foo")
+        self.assert_equal(
+            Argument(Bytes(), "foo", optional=True).usage,
+            "[foo]"
+        )
+        self.assert_equal(
+            Argument(Bytes(), "foo", remaining=True).usage,
+            "[foo ...]"
+        )
+
     def test_repr(self):
         bytes = Bytes()
         argument = Argument(bytes, "foo")

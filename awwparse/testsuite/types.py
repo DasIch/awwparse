@@ -11,7 +11,7 @@ from functools import partial
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Type, Any, Number,
-    Choice, Boolean, Last, List, Set, Adder
+    Choice, Boolean, Last, List, Set, Adder, ContainerType
 )
 from awwparse.types import parse_type_signature
 from awwparse.exceptions import UserTypeError
@@ -36,6 +36,29 @@ class TypesTestCase(TestCase):
 
 
 class TypeTestCase(TestCase):
+    def test_usage(self):
+        container = ContainerType(Bytes(metavar="foo"))
+        self.assert_equal(container.usage, "foo")
+
+        container = ContainerType(Bytes(metavar="foo", optional=True))
+        self.assert_equal(container.usage, "[foo]")
+
+        container = ContainerType(
+            Bytes(metavar="foo"),
+            Bytes(metavar="bar", optional=True)
+        )
+        self.assert_equal(container.usage, "foo [bar]")
+
+        container = ContainerType(
+            Bytes(metavar="foo"),
+            Bytes(metavar="bar", optional=True),
+            Bytes(metavar="baz")
+        )
+        self.assert_equal(container.usage, "foo [bar baz]")
+
+        container = ContainerType(Bytes(metavar="foo", remaining=True))
+        self.assert_equal(container.usage, "[foo ...]")
+
     def test_repr(self):
         self.assert_equal(
             repr(Type()),

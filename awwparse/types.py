@@ -45,6 +45,30 @@ class ContainerType(object):
             )
         ) or missing
 
+    @property
+    def usage(self):
+        def step(acc, next):
+            root, current = acc
+            if next.optional:
+                current.append([next])
+                current = current[-1]
+            else:
+                current.append(next)
+            return root, current
+
+        def render(tree, _root=True):
+            if isinstance(tree, Type):
+                if tree.remaining:
+                    return "[%s ...]" % tree.metavar
+                else:
+                    return tree.metavar
+            else:
+                nodes = " ".join(render(node, _root=False) for node in tree)
+                if _root:
+                    return nodes
+                return "[%s]" % nodes
+        return render(reduce(step, self.types, ([], ) * 2)[0])
+
     def parse(self, command, arguments):
         result = []
         for type in self.types:
