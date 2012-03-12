@@ -156,27 +156,8 @@ class Command(object):
     def set_parent(self, parent):
         self.parent = parent
 
-    def make_is_option(name, attrname, doc=None):
-        def is_option(self, argument):
-            return any(
-                argument.startswith(p) for p in getattr(self, attrname)
-            ) or getattr(self.parent, name, lambda arg: False)(argument)
-        is_option.__name__ = name
-        is_option.__doc__ = doc
-        return is_option
-
-    is_short_option = make_is_option(
-        "is_short_option",
-        "abbreviated_option_prefixes"
-    )
-    is_long_option = make_is_option(
-        "is_long_option",
-        "option_prefixes"
-    )
-    del make_is_option
-
     def is_option(self, argument):
-        return self.is_short_option(argument) or self.is_long_option(argument)
+        return argument in self.option_shorts or argument in self.option_longs
 
     def is_command(self, argument):
         return argument in self.commands
