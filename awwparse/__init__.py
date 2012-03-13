@@ -358,12 +358,15 @@ class Option(object):
     def default(self):
         return self.parser.default
 
-    def get_usage(self, short=True):
+    def get_usage(self, short=True, metavar=None):
         if short and self.short or not short and not self.long:
             option = self.short
         else:
             option = self.long
-        return "%s %s" % (option, self.parser.usage)
+        return "%s %s" % (
+            option,
+            self.parser.get_usage(metavar or self.name or self.abbreviation)
+        )
 
     def matches(self, argument):
         if argument == self.long:

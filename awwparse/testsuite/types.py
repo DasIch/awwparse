@@ -38,26 +38,26 @@ class TypesTestCase(TestCase):
 class TypeTestCase(TestCase):
     def test_usage(self):
         container = ContainerType(Bytes(metavar="foo"))
-        self.assert_equal(container.usage, "foo")
+        self.assert_equal(container.get_usage(), "foo")
 
         container = ContainerType(Bytes(metavar="foo", optional=True))
-        self.assert_equal(container.usage, "[foo]")
+        self.assert_equal(container.get_usage(), "[foo]")
 
         container = ContainerType(
             Bytes(metavar="foo"),
             Bytes(metavar="bar", optional=True)
         )
-        self.assert_equal(container.usage, "foo [bar]")
+        self.assert_equal(container.get_usage(), "foo [bar]")
 
         container = ContainerType(
             Bytes(metavar="foo"),
             Bytes(metavar="bar", optional=True),
             Bytes(metavar="baz")
         )
-        self.assert_equal(container.usage, "foo [bar baz]")
+        self.assert_equal(container.get_usage(), "foo [bar baz]")
 
         container = ContainerType(Bytes(metavar="foo", remaining=True))
-        self.assert_equal(container.usage, "[foo ...]")
+        self.assert_equal(container.get_usage(), "[foo ...]")
 
     def test_repr(self):
         self.assert_equal(

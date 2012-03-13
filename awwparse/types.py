@@ -45,8 +45,7 @@ class ContainerType(object):
             )
         ) or missing
 
-    @property
-    def usage(self):
+    def get_usage(self, metavar=None):
         def step(acc, next):
             root, current = acc
             if next.optional:
@@ -58,10 +57,7 @@ class ContainerType(object):
 
         def render(tree, _root=True):
             if isinstance(tree, Type):
-                if tree.remaining:
-                    return "[%s ...]" % tree.metavar
-                else:
-                    return tree.metavar
+                return tree.get_usage(metavar)
             else:
                 nodes = " ".join(render(node, _root=False) for node in tree)
                 if _root:
@@ -122,6 +118,12 @@ class Type(object):
         self.default = default
         self.optional = optional
         self.remaining = remaining
+
+    def get_usage(self, metavar=None):
+        metavar = self.metavar or metavar
+        if self.remaining:
+            return "[%s ...]" % metavar
+        return metavar
 
     def parse(self, command, arguments):
         raise NotImplementedError()
@@ -270,6 +272,9 @@ class Number(Any):
 class Boolean(Type):
     def __init__(self, default=False, **kwargs):
         Type.__init__(self, default=default, **kwargs)
+
+    def get_usage(self, metavar=None):
+        return ""
 
     def parse(self, command, arguments):
         return not self.default
