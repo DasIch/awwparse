@@ -6,6 +6,7 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+import os
 
 
 def set_attributes(object, attributes):
@@ -42,3 +43,10 @@ def force_list(object):
         return list(object)
     except TypeError:
         return [object]
+
+
+def get_terminal_width(default_width=80):
+    try:
+        return int(os.environ["COLUMNS"])
+    except (KeyError, ValueError):
+        return default_width

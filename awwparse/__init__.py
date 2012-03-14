@@ -7,9 +7,13 @@
     :license: BSD, see LICENSE.rst for details
 """
 import sys
+import textwrap
 from collections import deque
 
-from awwparse.utils import set_attributes_from_kwargs, missing, force_list
+
+from awwparse.utils import (
+    set_attributes_from_kwargs, missing, force_list, get_terminal_width
+)
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
     ArgumentConflict, ArgumentMissing
@@ -414,7 +418,7 @@ class CLI(Command):
     """
     def __init__(self, application_name=sys.argv[0], usage=None,
                  stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
-                 exit=sys.exit):
+                 exit=sys.exit, width=None):
         Command.__init__(self)
         self.application_name = application_name
         self.usage = usage
@@ -422,6 +426,7 @@ class CLI(Command):
         self.stdout = stdout
         self.stderr = stderr
         self.exit = exit
+        self.width = width if width is not None else get_terminal_width()
 
     @property
     def usage(self):
@@ -435,6 +440,18 @@ class CLI(Command):
     @usage.setter
     def usage(self, new_usage):
         self._usage = new_usage
+
+    def print_usage(self):
+        self.stdout.write(
+            "\n".join(
+                textwrap.wrap(
+                    "USAGE: %s" % self.usage,
+                    self.width,
+                    subsequent_indent=" " * len("USAGE: "),
+                    break_long_words=False,
+                )
+            ) + "\n"
+        )
 
     def run(self, arguments=sys.argv[1:]):
         return Command.run(self, arguments)

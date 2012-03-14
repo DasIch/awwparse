@@ -6,6 +6,8 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+from StringIO import StringIO
+
 from awwparse import (
     Option, Bytes, Command, Last, List, Arguments, Argument, CLI
 )
@@ -322,6 +324,21 @@ class CLITestCase(TestCase):
 
         cli.usage = "blubb"
         self.assert_equal(cli.usage, "blubb")
+
+    def test_print_usage(self):
+        stringio = StringIO()
+        cli = CLI(
+            usage=("foobarbaz " * 20).strip(), width=80,
+            stdout=stringio
+        )
+        cli.print_usage()
+        self.assert_equal(
+            stringio.getvalue(),
+            ("USAGE: foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+             "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+             "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+            )
+        )
 
 
 suite = make_suite([

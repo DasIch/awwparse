@@ -7,7 +7,8 @@
     :license: BSD, see LICENSE.rst for details
 """
 from awwparse.utils import (
-    set_attributes, set_attributes_from_kwargs, missing, force_list
+    set_attributes, set_attributes_from_kwargs, missing, force_list,
+    get_terminal_width
 )
 from awwparse.testsuite import TestCase, make_suite
 
@@ -50,6 +51,10 @@ class UtilsTestCase(TestCase):
     def test_force_list(self):
         self.assert_equal(force_list(1), [1])
         self.assert_equal(force_list("abc"), ["a", "b", "c"])
+
+    def test_get_terminal_width(self):
+        # check that it doesn't raise an exception and returns an integer
+        self.assert_is_instance(get_terminal_width(), int)
 
 
 suite = make_suite([UtilsTestCase])
