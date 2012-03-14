@@ -12,7 +12,8 @@ from collections import deque
 
 
 from awwparse.utils import (
-    set_attributes_from_kwargs, missing, force_list, get_terminal_width
+    set_attributes_from_kwargs, missing, force_list, get_terminal_width,
+    golden_split
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -249,7 +250,12 @@ class Command(object):
 class Argument(object):
     def __init__(self, type, metavar, default=missing, optional=False,
                  remaining=False, help=None):
-        self.type = type
+        if isinstance(type, Type):
+            self.type = type
+        else:
+            if not len(type) == 1:
+                raise TypeError(type)
+            self.type = type[0]
         self.metavar = metavar
         self.default = default
         self.optional = optional
@@ -379,13 +385,20 @@ class Option(object):
     def default(self):
         return self.parser.default
 
-    def get_usage(self, short=True, metavar=None):
-        if short and self.short or not short and not self.long:
-            option = self.short
+    def get_usage(self, using="short", metavar=None):
+        if using not in {"short", "long", "both"}:
+            raise ValueError(
+                "using has to be 'short', 'long' or 'both'; not %r" % using
+            )
+        if using == "both" and self.short and self.long:
+            caller = "%s, %s" % (self.short, self.long)
+        elif (using == "short" and self.short or
+              using in {"long", "both"} and not self.long):
+            caller = self.short
         else:
-            option = self.long
+            caller = self.long
         return "%s %s" % (
-            option,
+            caller,
             self.parser.get_usage(metavar or self.name or self.abbreviation)
         )
 
@@ -416,6 +429,8 @@ class CLI(Command):
     """
     Represents the command line interface of an application.
     """
+    section_indent = 2
+
     def __init__(self, application_name=sys.argv[0], usage=None,
                  stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
                  exit=sys.exit, width=None):
@@ -441,27 +456,89 @@ class CLI(Command):
     def usage(self, new_usage):
         self._usage = new_usage
 
-    def print_message(self, message, kind=None, stream=None):
+    def _print_message(self, message, kind=None, stream=None):
         if kind is not None:
             message = "%s %s" % (kind, message)
         if stream is None:
             stream = self.stdout
+        indent = " " * (len(kind) + 1) if kind else ""
         stream.write(
             "\n".join(
                 textwrap.wrap(
                     message,
                     self.width,
-                    subsequent_indent=" " * (len(kind) + 1),
+                    subsequent_indent=indent,
                     break_long_words=False
                 )
             ) + "\n"
         )
 
     def print_usage(self):
-        self.print_message(self.usage, "USAGE:")
+        self._print_message(self.usage, "USAGE:")
 
     def print_error(self, error):
-        self.print_message(error, "ERROR:")
+        self._print_message(error, "ERROR:")
+
+    def print_help(self):
+        self.print_usage()
+        self.stdout.write("\n")
+        if self.help is not None:
+            self._print_message(self.help)
+        if self.arguments:
+            self._print_arguments_help()
+            if self.options or self.commands:
+                self.stdout.write("\n")
+        if self.options:
+            self._print_options_help()
+            if self.commands:
+                self.stdout.write("\n")
+        if self.commands:
+            self._print_commands_help()
+
+    def _print_columns(self, header, rows):
+        self._print_message(header)
+        usable_width = self.width - self.section_indent
+        right_column_length, left_column_length = golden_split(usable_width)
+        left_column_length -= 2 # padding
+        output = []
+        for left, right in rows:
+            if right:
+                wrapped = textwrap.wrap(
+                    right,
+                    right_column_length,
+                    break_long_words=False
+                )
+            else:
+                wrapped = []
+            if len(left) > left_column_length:
+                output.append(left)
+            else:
+                try:
+                    first_line = wrapped.pop(0)
+                except IndexError:
+                    first_line = ""
+                output.append(
+                    ("%s%s" % (left.ljust(left_column_length), first_line))
+                    .strip()
+                )
+            output.extend(wrapped)
+        self.stdout.write("\n".join(
+            "%s%s" % (" " * self.section_indent, line) for line in output
+        ) + "\n")
+
+    def _print_arguments_help(self):
+        self._print_columns("Positional Arguments", (
+            (argument.metavar, argument.help) for argument in self.arguments
+        ))
+
+    def _print_options_help(self):
+        self._print_columns("Options", (
+            (option.get_usage(using="both", metavar=name), option.help)
+            for name, option in self.options.iteritems()
+        ))
+
+    def _print_commands_help(self):
+        self._print_columns("Commands", self.commands.iteritems())
 
     def run(self, arguments=sys.argv[1:]):
         return Command.run(self, arguments)

@@ -7,6 +7,10 @@
     :license: BSD, see LICENSE.rst for details
 """
 import os
+import math
+
+
+GOLDEN_RATIO = (1 + math.sqrt(5)) / 2
 
 
 def set_attributes(object, attributes):
@@ -50,3 +54,11 @@ def get_terminal_width(default_width=80):
         return int(os.environ["COLUMNS"])
     except (KeyError, ValueError):
         return default_width
+
+
+def golden_split(n):
+    large = n / GOLDEN_RATIO
+    small = n - large
+    large = int(round(large))
+    small = int(round(small))
+    return large, small
