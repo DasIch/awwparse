@@ -441,17 +441,27 @@ class CLI(Command):
     def usage(self, new_usage):
         self._usage = new_usage
 
-    def print_usage(self):
-        self.stdout.write(
+    def print_message(self, message, kind=None, stream=None):
+        if kind is not None:
+            message = "%s %s" % (kind, message)
+        if stream is None:
+            stream = self.stdout
+        stream.write(
             "\n".join(
                 textwrap.wrap(
-                    "USAGE: %s" % self.usage,
+                    message,
                     self.width,
-                    subsequent_indent=" " * len("USAGE: "),
-                    break_long_words=False,
+                    subsequent_indent=" " * (len(kind) + 1),
+                    break_long_words=False
                 )
             ) + "\n"
         )
+
+    def print_usage(self):
+        self.print_message(self.usage, "USAGE:")
+
+    def print_error(self, error):
+        self.print_message(error, "ERROR:")
 
     def run(self, arguments=sys.argv[1:]):
         return Command.run(self, arguments)
