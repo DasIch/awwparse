@@ -115,6 +115,23 @@ class Command(object):
             if option.default is not missing
         }
 
+    @property
+    def usage(self):
+        result = []
+        if self.options:
+            result.extend(
+                "[%s]" % option.get_usage(metavar=name)
+                for name, option in sorted(
+                    self.options.iteritems(),
+                    key=lambda item: item[1].short is None
+                )
+            )
+        if self.commands:
+            result.append("{%s}" % ",".join(self.commands))
+        if self.arguments:
+            result.extend(argument.usage for argument in self.arguments)
+        return " ".join(result)
+
     def add_option(self, name, option, force=False):
         arguments = None
         if option.short in self.option_shorts:
@@ -403,6 +420,13 @@ class CLI(Command):
         self.stdout = stdout
         self.stderr = stderr
         self.exit = exit
+
+    @property
+    def usage(self):
+        return "%s %s" % (
+            self.application_name,
+            Command.usage.__get__(self)
+        )
 
     def run(self, arguments=sys.argv[1:]):
         return Command.run(self, arguments)

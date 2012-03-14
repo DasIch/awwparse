@@ -6,7 +6,9 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from awwparse import Option, Bytes, Command, Last, List, Arguments, Argument
+from awwparse import (
+    Option, Bytes, Command, Last, List, Arguments, Argument, CLI
+)
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
@@ -140,6 +142,17 @@ class CommandTestCase(TestCase):
         command.add_option("bar", Option("abc", Bytes()))
         self.assert_not_in(None, command.option_shorts)
         self.assert_not_in(None, command.option_longs)
+
+    def test_get_usage(self):
+        command = Command()
+        command.add_option("foo", Option("o", Bytes()))
+        self.assert_equal(command.usage, "[-o foo]")
+
+        command.add_command("bar", Command())
+        self.assert_equal(command.usage, "[-o foo] {bar}")
+
+        command.add_argument(Argument(Bytes(), "baz"))
+        self.assert_equal(command.usage, "[-o foo] {bar} baz")
 
     def test_add_option(self):
         command = Command()
@@ -301,6 +314,14 @@ class ArgumentTestCase(TestCase):
         )
 
 
+class CLITestCase(TestCase):
+    def test_usage(self):
+        cli = CLI(application_name="spam")
+        cli.add_argument(Argument(Bytes(), "foo"))
+        self.assert_equal(cli.usage, "spam foo")
+
+
 suite = make_suite([
-    OptionTestCase, CommandTestCase, ArgumentsTestCase, ArgumentTestCase
+    OptionTestCase, CommandTestCase, ArgumentsTestCase, ArgumentTestCase,
+    CLITestCase
 ])
