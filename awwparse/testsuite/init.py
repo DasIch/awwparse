@@ -320,6 +320,9 @@ class CLITestCase(TestCase):
         cli.add_argument(Argument(Bytes(), "foo"))
         self.assert_equal(cli.usage, "spam foo")
 
+        cli.usage = "blubb"
+        self.assert_equal(cli.usage, "blubb")
+
 
 suite = make_suite([
     OptionTestCase, CommandTestCase, ArgumentsTestCase, ArgumentTestCase,

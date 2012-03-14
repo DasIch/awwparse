@@ -412,10 +412,12 @@ class CLI(Command):
     """
     Represents the command line interface of an application.
     """
-    def __init__(self, application_name=sys.argv[0], stdin=sys.stdin,
-                 stdout=sys.stdout, stderr=sys.stderr, exit=sys.exit):
+    def __init__(self, application_name=sys.argv[0], usage=None,
+                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
+                 exit=sys.exit):
         Command.__init__(self)
         self.application_name = application_name
+        self.usage = usage
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -423,10 +425,16 @@ class CLI(Command):
 
     @property
     def usage(self):
-        return "%s %s" % (
-            self.application_name,
-            Command.usage.__get__(self)
-        )
+        if self._usage is None:
+            return "%s %s" % (
+                self.application_name,
+                Command.usage.__get__(self)
+            )
+        return self._usage
+
+    @usage.setter
+    def usage(self, new_usage):
+        self._usage = new_usage
 
     def run(self, arguments=sys.argv[1:]):
         return Command.run(self, arguments)
