@@ -343,6 +343,47 @@ class CLITestCase(TestCase):
             )
         )
 
+    def test_print_help(self):
+        stringio = StringIO()
+        cli = CLI(application_name="app", stdout=stringio)
+        cli.add_argument(Argument(Bytes(), "foo"))
+        cli.print_help()
+        self.assert_equal(stringio.getvalue(), (
+            "USAGE: app foo\n"
+            "\n"
+            "Positional Arguments\n"
+            "  foo\n"
+        ))
+
+        cli.stdout = stringio = StringIO()
+        cli.add_option("bar", Option("a", Bytes()))
+        cli.print_help()
+        self.assert_equal(stringio.getvalue(), (
+            "USAGE: app [-a bar] foo\n"
+            "\n"
+            "Positional Arguments\n"
+            "  foo\n"
+            "\n"
+            "Options\n"
+            "  -a bar\n"
+        ))
+
+        cli.stdout = stringio = StringIO()
+        cli.add_command("baz", Command())
+        cli.print_help()
+        self.assert_equal(stringio.getvalue() , (
+            "USAGE: app [-a bar] {baz} foo\n"
+            "\n"
+            "Positional Arguments\n"
+            "  foo\n"
+            "\n"
+            "Options\n"
+            "  -a bar\n"
+            "\n"
+            "Commands\n"
+            "  baz\n"
+        ))
+
 
 suite = make_suite([
     OptionTestCase, CommandTestCase, ArgumentsTestCase, ArgumentTestCase,

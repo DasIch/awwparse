@@ -538,7 +538,9 @@ class CLI(Command):
         ))
 
     def _print_commands_help(self):
-        self._print_columns("Commands", self.commands.iteritems())
+        self._print_columns("Commands", (
+            (name, command.help) for name, command in self.commands.iteritems()
+        ))
 
     def run(self, arguments=sys.argv[1:]):
         return Command.run(self, arguments)
