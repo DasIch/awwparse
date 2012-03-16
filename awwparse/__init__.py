@@ -17,7 +17,7 @@ from awwparse.utils import (
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
-    ArgumentConflict, ArgumentMissing
+    ArgumentConflict, PositionalArgumentMissing
 )
 
 # imported for the API
@@ -238,7 +238,9 @@ class Command(object):
             pass
         else:
             if not positional.optional:
-                raise ArgumentMissing("expected %s" % positional.metavar)
+                raise PositionalArgumentMissing(
+                    "expected %s" % positional.metavar
+                )
         return self.main(*args, **kwargs)
 
     def main(self, *args, **kwargs):

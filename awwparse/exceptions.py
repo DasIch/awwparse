@@ -34,6 +34,10 @@ class CommandMissing(CLIError):
     pass
 
 
+class PositionalArgumentMissing(CLIError):
+    pass
+
+
 class EndOptionParsing(Exception):
     pass
 

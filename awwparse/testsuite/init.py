@@ -14,7 +14,7 @@ from awwparse import (
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
-    UnexpectedArgument
+    UnexpectedArgument, PositionalArgumentMissing
 )
 from awwparse.testsuite import TestCase, make_suite
 
@@ -271,7 +271,7 @@ class CommandTestCase(TestCase):
                 assert foo == "foo"
                 assert bar == "bar"
 
-        with self.assert_raises(ArgumentMissing):
+        with self.assert_raises(PositionalArgumentMissing):
             TestCommand().run(["foo"])
 
 
