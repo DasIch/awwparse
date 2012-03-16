@@ -14,10 +14,6 @@ class CLIError(Exception):
     """
 
 
-class UnexpectedOption(CLIError):
-    pass
-
-
 class UnexpectedArgument(CLIError):
     pass
 
