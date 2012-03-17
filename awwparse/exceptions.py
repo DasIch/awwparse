@@ -6,12 +6,14 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+import os
 
 
 class CLIError(Exception):
     """
     An exception used internally in case of a fatal error.
     """
+    exit_code = os.EX_USAGE
 
 
 class UnexpectedArgument(CLIError):

@@ -155,7 +155,7 @@ class Type(object):
         try:
             argument = arguments.next()
         except StopIteration:
-            raise ArgumentMissing()
+            raise ArgumentMissing(self.metavar)
         else:
             if command.is_option(argument):
                 raise ArgumentMissing(argument)

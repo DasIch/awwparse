@@ -9,21 +9,23 @@
 from StringIO import StringIO
 
 from awwparse import (
-    Option, Bytes, Command, Last, List, Arguments, Argument, CLI
+    Option, Bytes, Command, Last, List, Arguments, Argument, CLI, Integer
 )
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
-    UnexpectedArgument, PositionalArgumentMissing
+    UnexpectedArgument, PositionalArgumentMissing, UserTypeError
 )
 from awwparse.testsuite import TestCase, make_suite
 
 
 def make_command(options=None, commands=None, command_cls=Command):
+    def main(self, **kwargs):
+        return kwargs
     return type("TestCommand", (command_cls, ), {
         "options": {} if options is None else options,
         "commands": {} if commands is None else commands,
-        "main": lambda self, **kwargs: kwargs
+        "main": main
     })()
 
 
@@ -374,6 +376,31 @@ class CLITestCase(TestCase):
             "Commands\n"
             "  baz\n"
         ))
+
+    def test_error_handling(self):
+        class TestCLI(CLI):
+            def main(self, *args, **kwargs):
+                return args, kwargs
+        stringio = StringIO()
+        def exit(code):
+            assert code != 1
+        cli = TestCLI(
+            application_name="app", stdout=stringio, stderr=stringio, exit=exit
+        )
+        cli.add_option("foo", Option("o", Integer()))
+        cli.run(["-o", "foo"])
+        self.assert_equal(
+            stringio.getvalue(),
+            (
+                "ERROR: 'foo' is not an integer\n"
+                "USAGE: app [-o foo]\n"
+                "\n"
+                "Options\n"
+                "  -o foo\n"
+            )
+        )
+        with self.assert_raises(UserTypeError):
+            cli.run(["-o", "foo"], passthrough_errors=True)
 
 
 suite = make_suite([

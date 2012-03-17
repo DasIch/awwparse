@@ -17,7 +17,7 @@ from awwparse.utils import (
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
-    ArgumentConflict, PositionalArgumentMissing
+    ArgumentConflict, PositionalArgumentMissing, CLIError
 )
 
 # imported for the API
@@ -208,12 +208,11 @@ class Command(object):
                     return name, option, modified_argument
         raise UnexpectedArgument("%r is unexpected" % argument)
 
-    def run(self, arguments, default_args=None, default_kwargs=None):
-        arguments = Arguments(arguments)
+    def parse(self, arguments, default_args=None, default_kwargs=None):
         expected_positionals = iter(self.arguments)
         args = [] if default_args is None else default_args
         kwargs = self.defaults.copy()
-        if default_kwargs is not None:
+        if default_kwargs:
             kwargs.update(default_kwargs)
         for argument in arguments:
             previous_modified = argument
@@ -230,8 +229,7 @@ class Command(object):
             else:
                 while modified != previous_modified:
                     if hasattr(match, "run"):
-                        match.run(arguments, args, kwargs)
-                        return
+                        return match.parse, args, kwargs
                     kwargs = match.parse(self, kwargs, name, arguments)
                     previous_modified = modified
                     if not modified:
@@ -246,7 +244,14 @@ class Command(object):
                 raise PositionalArgumentMissing(
                     "expected %s" % positional.metavar
                 )
-        return self.main(*args, **kwargs)
+        return self.main, args, kwargs
+
+    def run(self, arguments, default_args=None, default_kwargs=None):
+        arguments = Arguments(arguments)
+        func, args, kwargs = self.parse, [], {}
+        while func.__name__ != "main":
+            func, args, kwargs = func(arguments, args, kwargs)
+        return func(*args, **kwargs)
 
     def main(self, *args, **kwargs):
         if self.commands:
@@ -496,10 +501,10 @@ class CLI(Command):
         )
 
     def print_usage(self):
-        self._print_message(self.usage, "USAGE:")
+        self._print_message(self.usage, kind="USAGE:")
 
     def print_error(self, error):
-        self._print_message(error, "ERROR:")
+        self._print_message(error, kind="ERROR:", stream=self.stderr)
 
     def print_help(self):
         self.print_usage()
@@ -564,5 +569,16 @@ class CLI(Command):
             (name, command.help) for name, command in self.commands.iteritems()
         ))
 
-    def run(self, arguments=sys.argv[1:]):
-        return Command.run(self, arguments)
+    def run(self, arguments=sys.argv[1:], passthrough_errors=False):
+        arguments = Arguments(arguments)
+        func, args, kwargs = self.parse, [], {}
+        while func.__name__ != "main":
+            try:
+                func, args, kwargs = func(arguments, args, kwargs)
+            except CLIError as error:
+                if passthrough_errors:
+                    raise
+                self.print_error(error.message)
+                self.print_help()
+                self.exit(error.exit_code)
+        return func(*args, **kwargs)
