@@ -13,7 +13,7 @@ from collections import deque
 
 from awwparse.utils import (
     set_attributes_from_kwargs, missing, force_list, get_terminal_width,
-    golden_split
+    golden_split, set_attributes
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -125,10 +125,10 @@ class Command(object):
         result = []
         if self.options:
             result.extend(
-                "[%s]" % option.get_usage(metavar=name)
-                for name, option in sorted(
-                    self.options.iteritems(),
-                    key=lambda item: item[1].short is None
+                "[%s]" % option.get_usage()
+                for option in sorted(
+                    self.options.itervalues(),
+                    key=lambda option: option.short is None
                 )
             )
         if self.commands:
@@ -149,6 +149,8 @@ class Command(object):
             raise OptionConflict(
                 "given option %r conflicts with %r on %r" % arguments
             )
+        option = option.copy()
+        option.setdefault_metavars(name)
         self.options[name] = option
 
     def add_command(self, name, command, force=False):
@@ -169,8 +171,11 @@ class Command(object):
 
     def __getattr__(self, name):
         if name in self.inherited_instance_attributes:
-            return getattr(self.parent, name)
-        raise AttributeError(name)
+            if hasattr(self.parent, name):
+                return getattr(self.parent, name)
+        raise AttributeError(
+            "%r object has no attribute %r" % (self.__class__.__name__, name)
+        )
 
     def copy(self):
         return self.__class__()
@@ -387,7 +392,22 @@ class Option(object):
     def default(self):
         return self.parser.default
 
-    def get_usage(self, using="short", metavar=None):
+    def setdefault_metavars(self, metavar):
+        self.parser.setdefault_metavars(metavar)
+
+    def copy(self):
+        option = self.__class__.__new__(self.__class__)
+        set_attributes(option, {
+            "name": self.name,
+            "abbreviation": self.abbreviation,
+            "parser": self.parser.copy(),
+            "abbreviation_prefix": self.abbreviation_prefix,
+            "name_prefix": self.name_prefix,
+            "help": self.help
+        })
+        return option
+
+    def get_usage(self, using="short"):
         if using not in {"short", "long", "both"}:
             raise ValueError(
                 "using has to be 'short', 'long' or 'both'; not %r" % using
@@ -401,7 +421,7 @@ class Option(object):
             caller = self.long
         return "%s %s" % (
             caller,
-            self.parser.get_usage(metavar or self.name or self.abbreviation)
+            self.parser.usage
         )
 
     def matches(self, argument):
@@ -535,8 +555,8 @@ class CLI(Command):
 
     def _print_options_help(self):
         self._print_columns("Options", (
-            (option.get_usage(using="both", metavar=name), option.help)
-            for name, option in self.options.iteritems()
+            (option.get_usage(using="both"), option.help)
+            for option in self.options.itervalues()
         ))
 
     def _print_commands_help(self):

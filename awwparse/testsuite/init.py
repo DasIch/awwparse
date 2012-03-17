@@ -81,19 +81,10 @@ class OptionTestCase(TestCase):
         self.assert_equal(option.get_usage(using="long"), "-a foo")
         self.assert_equal(option.get_usage(using="both"), "-a foo")
 
-        option = Option("abc", Bytes(metavar="foo"))
-        self.assert_equal(option.get_usage(), "--abc foo")
-        self.assert_equal(option.get_usage(using="long"), "--abc foo")
-        self.assert_equal(option.get_usage(using="both"), "--abc foo")
-
         option = Option("a", "abc", Bytes(metavar="foo"))
         self.assert_equal(option.get_usage(), "-a foo")
         self.assert_equal(option.get_usage(using="long"), "--abc foo")
         self.assert_equal(option.get_usage(using="both"), "-a, --abc foo")
-
-        option = Option("a", Bytes())
-        self.assert_equal(option.get_usage(), "-a a")
-        self.assert_equal(option.get_usage(metavar="foo"), "-a foo")
 
     def test_abbreviation_prefix(self):
         command = make_command({"option": Option("o", Bytes())})

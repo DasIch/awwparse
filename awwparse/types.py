@@ -45,7 +45,8 @@ class ContainerType(object):
             )
         ) or missing
 
-    def get_usage(self, metavar=None):
+    @property
+    def usage(self):
         def step(acc, next):
             root, current = acc
             if next.optional:
@@ -57,13 +58,23 @@ class ContainerType(object):
 
         def render(tree, _root=True):
             if isinstance(tree, Type):
-                return tree.get_usage(metavar)
+                return tree.usage
             else:
                 nodes = " ".join(render(node, _root=False) for node in tree)
                 if _root:
                     return nodes
                 return "[%s]" % nodes
         return render(reduce(step, self.types, ([], ) * 2)[0])
+
+    def setdefault_metavars(self, metavar):
+        for type in self.types:
+            if type.metavar is None:
+                type.metavar = metavar
+
+    def copy(self):
+        return self.__class__(
+            *[type.copy() for type in self.types]
+        )
 
     def parse(self, command, arguments):
         result = []
@@ -119,11 +130,23 @@ class Type(object):
         self.optional = optional
         self.remaining = remaining
 
-    def get_usage(self, metavar=None):
-        metavar = self.metavar or metavar
+    def setdefault_metavar(self, metavar):
+        if self.metavar is None:
+            self.metavar = metavar
+
+    def copy(self):
+        return self.__class__(
+            metavar=self.metavar,
+            default=self.default,
+            optional=self.optional,
+            remaining=self.remaining
+        )
+
+    @property
+    def usage(self):
         if self.remaining:
-            return "[%s ...]" % metavar
-        return metavar
+            return "[%s ...]" % self.metavar
+        return self.metavar
 
     def parse(self, command, arguments):
         raise NotImplementedError()
@@ -237,6 +260,16 @@ class Any(ConverterBase):
         self.types = types
         self.error_message = error_message
 
+    def copy(self):
+        return self.__class__(
+            [type.copy() for type in self.types],
+            self.error_message,
+            metavar=self.metavar,
+            default=self.default,
+            optional=self.optional,
+            remaining=self.remaining
+        )
+
     def convert(self, argument):
         for type in self.types:
             try:
@@ -262,6 +295,15 @@ class Number(Any):
         )
         self.use_decimal = use_decimal
 
+    def copy(self):
+        return self.__class__(
+            use_decimal=self.use_decimal,
+            metavar=self.metavar,
+            default=self.default,
+            optional=self.optional,
+            remaining=self.remaining
+        )
+
     def __repr__(self):
         return "%s(use_decimal=%r, metavar=%r, default=%r, optional=%r, remaining=%r)" % (
             self.__class__.__name__, self.use_decimal, self.metavar,
@@ -273,7 +315,8 @@ class Boolean(Type):
     def __init__(self, default=False, **kwargs):
         Type.__init__(self, default=default, **kwargs)
 
-    def get_usage(self, metavar=None):
+    @property
+    def usage(self):
         return ""
 
     def parse(self, command, arguments):
@@ -285,6 +328,13 @@ class Choice(Type):
         Type.__init__(self, metavar=metavar)
         self.type = type
         self.choices = choices
+
+    def copy(self):
+        return self.__class__(
+            self.type.copy(),
+            self.choices,
+            metavar=self.metavar
+        )
 
     def parse(self, command, arguments):
         parsed = self.type.parse(command, arguments)
