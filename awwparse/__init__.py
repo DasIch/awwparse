@@ -501,10 +501,10 @@ class CLI(Command):
         )
 
     def print_usage(self):
-        self._print_message(self.usage, kind="USAGE:")
+        self._print_message(self.usage, kind="Usage:")
 
     def print_error(self, error):
-        self._print_message(error, kind="ERROR:", stream=self.stderr)
+        self._print_message(error, kind="Error:", stream=self.stderr)
 
     def print_help(self):
         self.print_usage()

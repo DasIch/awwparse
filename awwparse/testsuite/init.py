@@ -330,7 +330,7 @@ class CLITestCase(TestCase):
         cli.print_usage()
         self.assert_equal(
             stringio.getvalue(),
-            ("USAGE: foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+            ("Usage: foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
              "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
              "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
             )
@@ -342,7 +342,7 @@ class CLITestCase(TestCase):
         cli.add_argument(Argument(Bytes(), "foo"))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), (
-            "USAGE: app foo\n"
+            "Usage: app foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
@@ -352,7 +352,7 @@ class CLITestCase(TestCase):
         cli.add_option("bar", Option("a", Bytes()))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), (
-            "USAGE: app [-a bar] foo\n"
+            "Usage: app [-a bar] foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
@@ -365,7 +365,7 @@ class CLITestCase(TestCase):
         cli.add_command("baz", Command())
         cli.print_help()
         self.assert_equal(stringio.getvalue() , (
-            "USAGE: app [-a bar] {baz} foo\n"
+            "Usage: app [-a bar] {baz} foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
@@ -392,8 +392,8 @@ class CLITestCase(TestCase):
         self.assert_equal(
             stringio.getvalue(),
             (
-                "ERROR: 'foo' is not an integer\n"
-                "USAGE: app [-o foo]\n"
+                "Error: 'foo' is not an integer\n"
+                "Usage: app [-o foo]\n"
                 "\n"
                 "Options\n"
                 "  -o foo\n"
