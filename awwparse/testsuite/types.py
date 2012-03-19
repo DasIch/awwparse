@@ -299,7 +299,7 @@ class ChoiceTestCase(TestCase):
         self.assert_equal(action.run(["-a", "1"]), {"foo": 1})
         self.assert_equal(action.run(["-a", "2"]), {"foo": 2})
         with self.assert_raises(UserTypeError):
-            action.run(["-a", "3"])
+            action.run(["-a", "3"], passthrough_errors=True)
 
 
 suite = make_suite([

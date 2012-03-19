@@ -44,7 +44,7 @@ class OptionTestCase(TestCase):
         command = make_command({"option": Option("o", Bytes(), Bytes(), Bytes())})
         for args in [["-o"], ["-o", "foo"], ["-o", "foo", "bar"]]:
             with self.assert_raises(ArgumentMissing):
-                command.run(args)
+                command.run(args, passthrough_errors=True)
 
         command = make_command({"option": Option("o", Bytes(), [Bytes(), Bytes()])})
         self.assert_equal(command.run(["-o", "a"]), {"option": ["a"]})
@@ -54,7 +54,7 @@ class OptionTestCase(TestCase):
         )
         for args in [["-o"], ["-o", "a", "b"]]:
             with self.assert_raises(ArgumentMissing):
-                command.run(args)
+                command.run(args, passthrough_errors=True)
 
         command = make_command({
             "option": Option("o", Bytes(), [Bytes(), [Bytes()]])
@@ -144,13 +144,13 @@ class CommandTestCase(TestCase):
     def test_get_usage(self):
         command = Command()
         command.add_option("foo", Option("o", Bytes()))
-        self.assert_equal(command.usage, "[-o foo]")
+        self.assert_equal(command.get_usage(), "[-o foo]")
 
         command.add_command("bar", Command())
-        self.assert_equal(command.usage, "[-o foo] {bar}")
+        self.assert_equal(command.get_usage(), "[-o foo] {bar}")
 
         command.add_argument(Argument(Bytes(), "baz"))
-        self.assert_equal(command.usage, "[-o foo] {bar} baz")
+        self.assert_equal(command.get_usage(), "[-o foo] {bar} baz")
 
     def test_add_option(self):
         command = Command()
@@ -176,24 +176,24 @@ class CommandTestCase(TestCase):
         class TestCommand(Command):
             commands = {"foo": Command()}
         with self.assert_raises(CommandMissing):
-            TestCommand().run([])
+            TestCommand().run([], passthrough_errors=True)
 
         with self.assert_raises(NotImplementedError):
-            Command().run([])
+            Command().run([], passthrough_errors=True)
 
         with self.assert_raises(UnexpectedArgument):
-            Command().run(["--unexpected"])
+            Command().run(["--unexpected"], passthrough_errors=True)
 
         with self.assert_raises(UnexpectedArgument):
-            Command().run(["-u"])
+            Command().run(["-u"], passthrough_errors=True)
 
         with self.assert_raises(UnexpectedArgument):
-            Command().run(["unexpected"])
+            Command().run(["unexpected"], passthrough_errors=True)
 
         command = Command()
         command.add_option("foo", Option("b", Bytes()))
         with self.assert_raises(UnexpectedArgument):
-            command.run(["-a"])
+            command.run(["-a"], passthrough_errors=True)
 
     def test_main(self):
         class TestCommand(Command):
@@ -265,7 +265,7 @@ class CommandTestCase(TestCase):
                 assert bar == "bar"
 
         with self.assert_raises(PositionalArgumentMissing):
-            TestCommand().run(["foo"])
+            TestCommand().run(["foo"], passthrough_errors=True)
 
 
 class ArgumentsTestCase(TestCase):
@@ -313,13 +313,13 @@ class ArgumentTestCase(TestCase):
 
 
 class CLITestCase(TestCase):
-    def test_usage(self):
+    def test_get_usage(self):
         cli = CLI(application_name="spam")
         cli.add_argument(Argument(Bytes(), "foo"))
-        self.assert_equal(cli.usage, "spam foo")
+        self.assert_equal(cli.get_usage(), "spam foo")
 
         cli.usage = "blubb"
-        self.assert_equal(cli.usage, "blubb")
+        self.assert_equal(cli.get_usage(), "blubb")
 
     def test_print_usage(self):
         stringio = StringIO()
@@ -388,7 +388,11 @@ class CLITestCase(TestCase):
             application_name="app", stdout=stringio, stderr=stringio, exit=exit
         )
         cli.add_option("foo", Option("o", Integer()))
-        cli.run(["-o", "foo"])
+        with self.assert_raises(AssertionError) as error:
+            cli.run(["-o", "foo"])
+        self.assert_equal(
+            error.exception.message, "exit should have aborted execution"
+        )
         self.assert_equal(
             stringio.getvalue(),
             (
@@ -401,6 +405,30 @@ class CLITestCase(TestCase):
         )
         with self.assert_raises(UserTypeError):
             cli.run(["-o", "foo"], passthrough_errors=True)
+
+        stringio = StringIO()
+        cli = TestCLI(
+            application_name="app", stdout=stringio, stderr=stringio, exit=exit
+        )
+        command = Command()
+        command.add_option("foo", Option("o", Bytes()))
+        cli.add_command("spam", command)
+        with self.assert_raises(AssertionError) as error:
+            cli.run(["spam", "-o"])
+        self.assert_equal(
+            error.exception.message,
+            "exit should have aborted execution"
+        )
+        self.assert_equal(
+            stringio.getvalue(),
+            (
+                "Error: foo\n"
+                "Usage: app spam [-o foo]\n"
+                "\n"
+                "Options\n"
+                "  -o foo\n"
+            )
+        )
 
 
 suite = make_suite([

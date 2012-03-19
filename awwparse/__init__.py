@@ -73,7 +73,9 @@ def parse_argument_signature(arguments, _root=True):
 
 
 class Command(object):
-    inherited_instance_attributes = frozenset(["stdin", "stdout", "stderr"])
+    inherited_instance_attributes = frozenset([
+        "stdin", "stdout", "stderr", "exit", "width", "section_indent"
+    ])
     options = {}
     commands = {}
     arguments = ()
@@ -120,9 +122,8 @@ class Command(object):
             if option.default is not missing
         }
 
-    @property
-    def usage(self):
-        result = []
+    def get_usage(self, arguments=None):
+        result = [] if arguments is None else arguments.trace[:-1]
         if self.options:
             result.extend(
                 "[%s]" % option.get_usage()
@@ -170,9 +171,11 @@ class Command(object):
         self.arguments.append(type)
 
     def __getattr__(self, name):
+        missing = object()
         if name in self.inherited_instance_attributes:
-            if hasattr(self.parent, name):
-                return getattr(self.parent, name)
+            attribute =  getattr(self.parent, name, missing)
+            if attribute is not missing:
+                return attribute
         raise AttributeError(
             "%r object has no attribute %r" % (self.__class__.__name__, name)
         )
@@ -196,6 +199,100 @@ class Command(object):
                 return argument.lstrip(prefix)
         return argument
 
+    def _print_message(self, message, prefix=None, stream=None):
+        if prefix is not None:
+            message = "%s%s" % (prefix, message)
+        if stream is None:
+            stream = self.stdout
+        indent = " " * len(prefix) if prefix else ""
+        stream.write(
+            "\n".join(
+                textwrap.wrap(
+                    message,
+                    self.width,
+                    subsequent_indent=indent,
+                    break_long_words=False
+                )
+            ) + "\n"
+        )
+
+    def print_usage(self, arguments=None):
+        self._print_message(self.get_usage(arguments), prefix="Usage: ")
+
+    def print_error(self, error):
+        self._print_message(error, prefix="Error: ", stream=self.stderr)
+
+    def print_help(self, arguments=None):
+        self.print_usage(arguments)
+        self.stdout.write("\n")
+        if self.help is not None:
+            self._print_message(self.help)
+        if self.arguments:
+            self._print_arguments_help()
+            if self.options or self.commands:
+                self.stdout.write("\n")
+        if self.options:
+            self._print_options_help()
+            if self.commands:
+                self.stdout.write("\n")
+        if self.commands:
+            self._print_commands_help()
+
+    def _print_columns(self, header, rows):
+        self._print_message(header)
+        usable_width = self.width - self.section_indent
+        right_column_length, left_column_length = golden_split(usable_width)
+        left_column_length -= 2 # padding
+        output = []
+        for left, right in rows:
+            if right:
+                wrapped = textwrap.wrap(
+                    right,
+                    right_column_length,
+                    break_long_words=False
+                )
+            else:
+                wrapped = []
+            if len(left) > left_column_length:
+                output.append(left)
+            else:
+                try:
+                    first_line = wrapped.pop(0)
+                except IndexError:
+                    first_line = ""
+                output.append(
+                    ("%s%s" % (left.ljust(left_column_length), first_line))
+                    .strip()
+                )
+            output.extend(wrapped)
+        self.stdout.write("\n".join(
+            "%s%s" % (" " * self.section_indent, line) for line in output
+        ) + "\n")
+
+    def _print_arguments_help(self):
+        self._print_columns(
+            "Positional Arguments",
+            ((argument.metavar, argument.help) for argument in self.arguments)
+        )
+
+    def _print_options_help(self):
+        self._print_columns(
+            "Options",
+            (
+                (option.get_usage(using="both"), option.help)
+                for option in self.options.itervalues()
+            )
+        )
+
+    def _print_commands_help(self):
+        self._print_columns(
+            "Commands",
+            (
+                (name, command.help)
+                for name, command in self.commands.iteritems()
+            )
+        )
+
     def get_match(self, argument):
         modified_argument = argument
         if self.is_command(argument):
@@ -208,55 +305,66 @@ class Command(object):
                     return name, option, modified_argument
         raise UnexpectedArgument("%r is unexpected" % argument)
 
-    def parse(self, arguments, default_args=None, default_kwargs=None):
+    def run(self, arguments, default_args=None, default_kwargs=None,
+            passthrough_errors=False):
+        if not isinstance(arguments, Arguments):
+            arguments = Arguments(arguments)
         expected_positionals = iter(self.arguments)
         args = [] if default_args is None else default_args
         kwargs = self.defaults.copy()
         if default_kwargs:
             kwargs.update(default_kwargs)
-        for argument in arguments:
-            previous_modified = argument
-            try:
-                name, match, modified = self.get_match(argument)
-            except UnexpectedArgument as unexcepted_argument:
-                try:
-                    positional = expected_positionals.next()
-                except StopIteration:
-                    raise unexcepted_argument
-                else:
-                    arguments.rewind()
-                    args.append(positional.parse(self, arguments))
-            else:
-                while modified != previous_modified:
-                    if hasattr(match, "run"):
-                        return match.parse, args, kwargs
-                    kwargs = match.parse(self, kwargs, name, arguments)
-                    previous_modified = modified
-                    if not modified:
-                        break
-                    name, option, modified = self.get_match(modified)
         try:
-            positional = expected_positionals.next()
-        except StopIteration:
-            pass
-        else:
-            if not positional.optional:
-                raise PositionalArgumentMissing(
-                    "expected %s" % positional.metavar
-                )
-        return self.main, args, kwargs
-
-    def run(self, arguments, default_args=None, default_kwargs=None):
-        arguments = Arguments(arguments)
-        func, args, kwargs = self.parse, [], {}
-        while func.__name__ != "main":
-            func, args, kwargs = func(arguments, args, kwargs)
-        return func(*args, **kwargs)
+            for argument in arguments:
+                previous_modified = argument
+                try:
+                    name, match, modified = self.get_match(argument)
+                except UnexpectedArgument as unexcepted_argument:
+                    try:
+                        positional = expected_positionals.next()
+                    except StopIteration:
+                        raise unexcepted_argument
+                    else:
+                        arguments.rewind()
+                        args.append(positional.parse(self, arguments))
+                else:
+                    while modified != previous_modified:
+                        if hasattr(match, "run"):
+                            match.run(arguments, args, kwargs)
+                            return
+                        kwargs = match.parse(self, kwargs, name, arguments)
+                        previous_modified = modified
+                        if not modified:
+                            break
+                        name, option, modified = self.get_match(modified)
+            try:
+                positional = expected_positionals.next()
+            except StopIteration:
+                pass
+            else:
+                if not positional.optional:
+                    raise PositionalArgumentMissing(
+                        "expected %s" % positional.metavar
+                    )
+        except CLIError as error:
+            if passthrough_errors:
+                raise
+            self.print_error(error.message)
+            self.print_help(arguments)
+            self.exit(error.exit_code)
+            assert False, "exit should have aborted execution"
+        return self.main(*args, **kwargs)
 
     def main(self, *args, **kwargs):
         if self.commands:
             raise CommandMissing("expected a command")
-        raise NotImplementedError()
+        raise NotImplementedError(
+            "%s.main(*%r, **%r)" % (
+                self.__class__.__name__,
+                args,
+                kwargs
+            )
+        )
 
 
 class Argument(object):
@@ -470,115 +578,14 @@ class CLI(Command):
         self.exit = exit
         self.width = width if width is not None else get_terminal_width()
 
-    @property
-    def usage(self):
-        if self._usage is None:
-            return "%s %s" % (
-                self.application_name,
-                Command.usage.__get__(self)
-            )
-        return self._usage
-
-    @usage.setter
-    def usage(self, new_usage):
-        self._usage = new_usage
-
-    def _print_message(self, message, kind=None, stream=None):
-        if kind is not None:
-            message = "%s %s" % (kind, message)
-        if stream is None:
-            stream = self.stdout
-        indent = " " * (len(kind) + 1) if kind else ""
-        stream.write(
-            "\n".join(
-                textwrap.wrap(
-                    message,
-                    self.width,
-                    subsequent_indent=indent,
-                    break_long_words=False
-                )
-            ) + "\n"
-        )
-
-    def print_usage(self):
-        self._print_message(self.usage, kind="Usage:")
-
-    def print_error(self, error):
-        self._print_message(error, kind="Error:", stream=self.stderr)
-
-    def print_help(self):
-        self.print_usage()
-        self.stdout.write("\n")
-        if self.help is not None:
-            self._print_message(self.help)
-        if self.arguments:
-            self._print_arguments_help()
-            if self.options or self.commands:
-                self.stdout.write("\n")
-        if self.options:
-            self._print_options_help()
-            if self.commands:
-                self.stdout.write("\n")
-        if self.commands:
-            self._print_commands_help()
-
-    def _print_columns(self, header, rows):
-        self._print_message(header)
-        usable_width = self.width - self.section_indent
-        right_column_length, left_column_length = golden_split(usable_width)
-        left_column_length -= 2 # padding
-        output = []
-        for left, right in rows:
-            if right:
-                wrapped = textwrap.wrap(
-                    right,
-                    right_column_length,
-                    break_long_words=False
-                )
-            else:
-                wrapped = []
-            if len(left) > left_column_length:
-                output.append(left)
-            else:
-                try:
-                    first_line = wrapped.pop(0)
-                except IndexError:
-                    first_line = ""
-                output.append(
-                    ("%s%s" % (left.ljust(left_column_length), first_line))
-                    .strip()
-                )
-            output.extend(wrapped)
-        self.stdout.write("\n".join(
-            "%s%s" % (" " * self.section_indent, line) for line in output
-        ) + "\n")
-
-    def _print_arguments_help(self):
-        self._print_columns("Positional Arguments", (
-            (argument.metavar, argument.help) for argument in self.arguments
-        ))
-
-    def _print_options_help(self):
-        self._print_columns("Options", (
-            (option.get_usage(using="both"), option.help)
-            for option in self.options.itervalues()
-        ))
-
-    def _print_commands_help(self):
-        self._print_columns("Commands", (
-            (name, command.help) for name, command in self.commands.iteritems()
-        ))
+    def get_usage(self, arguments=None):
+        if self.usage is None:
+            return "%s %s" % (self.application_name, Command.get_usage(self))
+        return self.usage
 
     def run(self, arguments=sys.argv[1:], passthrough_errors=False):
         arguments = Arguments(arguments)
-        func, args, kwargs = self.parse, [], {}
-        while func.__name__ != "main":
-            try:
-                func, args, kwargs = func(arguments, args, kwargs)
-            except CLIError as error:
-                if passthrough_errors:
-                    raise
-                self.print_error(error.message)
-                self.print_help()
-                self.exit(error.exit_code)
-        return func(*args, **kwargs)
+        arguments.trace.append(self.application_name)
+        return Command.run(
+            self, arguments, passthrough_errors=passthrough_errors
+        )
