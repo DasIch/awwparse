@@ -6,7 +6,10 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-from StringIO import StringIO
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from awwparse import (
     Option, Bytes, Command, Last, List, Arguments, Argument, CLI, Integer
@@ -60,7 +63,7 @@ class OptionTestCase(TestCase):
             "option": Option("o", Bytes(), [Bytes(), [Bytes()]])
         })
         args = ["-o", "a", "b", "c"]
-        for i in xrange(2, len(args) + 1):
+        for i in range(2, len(args) + 1):
             self.assert_equal(
                 command.run(args[:i]),
                 {"option": args[1:i] or [missing]}
@@ -91,25 +94,25 @@ class OptionTestCase(TestCase):
     def test_abbreviation_prefix(self):
         command = make_command({"option": Option("o", Bytes())})
         self.assert_equal(command.options["option"].abbreviation_prefix, "-")
-        self.assert_(command.options["option"].matches("-o"))
+        self.assert_true(command.options["option"].matches("-o"))
 
         command = make_command({
             "option": Option("o", Bytes(), abbreviation_prefix="+")
         })
         self.assert_equal(command.options["option"].abbreviation_prefix, "+")
-        self.assert_(command.options["option"].matches("+o"))
+        self.assert_true(command.options["option"].matches("+o"))
         self.assert_equal(command.run(["+o", "foo"]), {"option": "foo"})
 
     def test_name_prefix(self):
         command = make_command({"option": Option("option", Bytes())})
         self.assert_equal(command.options["option"].name_prefix, "--")
-        self.assert_(command.options["option"].matches("--option"))
+        self.assert_true(command.options["option"].matches("--option"))
 
         command = make_command({
             "option": Option("option", Bytes(), name_prefix="++")
         })
         self.assert_equal(command.options["option"].name_prefix, "++")
-        self.assert_(command.options["option"].matches("++option"))
+        self.assert_true(command.options["option"].matches("++option"))
         self.assert_equal(command.run(["++option", "foo"]), {"option": "foo"})
 
     def test_matches(self):
@@ -120,10 +123,10 @@ class OptionTestCase(TestCase):
         self.assert_equal(option.matches("--option"), (True, ""))
 
     def test_repr(self):
-        self.assert_(
+        self.assert_true(
             repr(Option("o", Bytes())).startswith("Option('o', Last")
         )
-        self.assert_(
+        self.assert_true(
             repr(Option("option", Bytes())).startswith("Option('option', Last")
         )
         signature = Last(Bytes())
@@ -391,7 +394,7 @@ class CLITestCase(TestCase):
         with self.assert_raises(AssertionError) as error:
             cli.run(["-o", "foo"])
         self.assert_equal(
-            error.exception.message, "exit should have aborted execution"
+            error.exception.args[0], "exit should have aborted execution"
         )
         self.assert_equal(
             stringio.getvalue(),
@@ -416,7 +419,7 @@ class CLITestCase(TestCase):
         with self.assert_raises(AssertionError) as error:
             cli.run(["spam", "-o"])
         self.assert_equal(
-            error.exception.message,
+            error.exception.args[0],
             "exit should have aborted execution"
         )
         self.assert_equal(

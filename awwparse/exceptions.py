@@ -15,6 +15,12 @@ class CLIError(Exception):
     """
     exit_code = os.EX_USAGE
 
+    @property
+    def message(self):
+        if self.args:
+            return self.args[0]
+        return None
+
 
 class UnexpectedArgument(CLIError):
     pass

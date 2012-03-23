@@ -10,6 +10,10 @@ import locale
 import decimal
 from operator import attrgetter
 from itertools import takewhile
+try:
+    reduce
+except NameError:
+    from functools import reduce
 
 from awwparse.utils import missing, force_list
 from awwparse.exceptions import (
@@ -153,7 +157,7 @@ class Type(object):
 
     def get_next_argument(self, command, arguments):
         try:
-            argument = arguments.next()
+            argument = next(arguments)
         except StopIteration:
             raise ArgumentMissing(self.metavar)
         else:
@@ -222,7 +226,7 @@ class ConverterBase(Type):
 
     def parse(self, command, arguments):
         if self.remaining:
-            return map(self.convert, arguments)
+            return list(map(self.convert, arguments))
         try:
             argument = self.get_next_argument(command, arguments)
         except ArgumentMissing:

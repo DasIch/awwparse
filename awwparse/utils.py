@@ -14,14 +14,14 @@ GOLDEN_RATIO = (1 + math.sqrt(5)) / 2
 
 
 def set_attributes(object, attributes):
-    for name, attribute in attributes.iteritems():
+    for name, attribute in attributes.items():
         setattr(object, name, attribute)
 
 
 def set_attributes_from_kwargs(object, kwargs, defaults):
     set_attributes(
         object,
-        {key: kwargs.pop(key, value) for key, value in defaults.iteritems()}
+        {key: kwargs.pop(key, value) for key, value in defaults.items()}
     )
     if kwargs:
         raise TypeError(
@@ -33,6 +33,9 @@ def set_attributes_from_kwargs(object, kwargs, defaults):
 class Missing(object):
     def __nonzero__(self):
         return False
+
+    def __bool__(self):
+        return self.__nonzero__()
 
     def __repr__(self):
         return "missing"

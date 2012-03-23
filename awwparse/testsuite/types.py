@@ -9,6 +9,8 @@
 import decimal
 from functools import partial
 
+import six
+
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Type, Any, Number,
     Choice, Boolean, Last, List, Set, Adder, ContainerType
@@ -22,17 +24,17 @@ class TypesTestCase(TestCase):
     def test_parse_type_signature(self):
         optionals = partial(map, lambda type: type.optional)
 
-        self.assert_(all(not optional for optional in optionals(
+        self.assert_true(all(not optional for optional in optionals(
             parse_type_signature((Bytes(), Bytes(), Bytes()))
         )))
         types = parse_type_signature([[Bytes(), [Bytes(), [Bytes()]]]])
-        self.assert_(all(optionals(
+        self.assert_true(all(optionals(
             parse_type_signature([[Bytes(), [Bytes(), [Bytes()]]]])
         )))
         types = parse_type_signature((Bytes(), [Bytes(), Bytes()]))
-        self.assert_(not types[0].optional)
-        self.assert_(types[1].optional)
-        self.assert_(not types[2].optional)
+        self.assert_true(not types[0].optional)
+        self.assert_true(types[1].optional)
+        self.assert_true(not types[2].optional)
 
 
 class TypeTestCase(TestCase):
@@ -119,14 +121,14 @@ def make_parse_test(type, single, remaining, optional):
         command.add_option("bar", Option("b", type(remaining=True)))
         for args, expected in remaining:
             self.assert_equal(
-                command.run(["-b"] + args),
+                command.run(["-b"] + args, passthrough_errors=True),
                 {"bar": expected}
             )
 
         command.add_option("baz", Option("c", type(), type(optional=True)))
         for args, expected in optional:
             self.assert_equal(
-                command.run(["-c"] + args),
+                command.run(["-c"] + args, passthrough_errors=True),
                 {"baz": expected}
             )
     return parse_test
@@ -147,9 +149,10 @@ class BytesTestCase(TestCase):
 class StringTestCase(TestCase):
     def test_wrong_encoding(self):
         string = String()
+        unknown_char = six.u("\ufffd") * (2 if six.PY3 else 4)
         self.assert_equal(
-            string.decode(u"ündecödäble".encode("utf-8"), "ascii"),
-            u"��ndec��d��ble"
+            string.decode(six.u("ündecödäble").encode("utf-8"), "ascii"),
+            six.u("%(u)sndec%(u)sd%(u)sble") % {"u": unknown_char}
         )
 
     def test_decode_strict(self):
@@ -157,15 +160,18 @@ class StringTestCase(TestCase):
             error_method = "strict"
         string = TestString()
         with self.assert_raises(UserTypeError):
-            string.decode(u"ündecödäble".encode("utf-8"), "ascii")
+            string.decode(six.u("ündecödäble").encode("utf-8"), "ascii")
 
     test_parse = make_parse_test(
         String,
-        [([u"ä".encode("utf-8")], u"ä")],
-        [([c.encode("utf-8") for c in u"äöü"], list(u"äöü"))],
+        [([six.u("ä").encode("utf-8")], six.u("ä"))],
+        [([c.encode("utf-8") for c in six.u("äöü")], list(six.u("äöü")))],
         [
-            ([u"ä".encode("utf-8")], [u"ä"]),
-            ([c.encode("utf-8") for c in u"äö"], [u"ä", u"ö"])
+            ([six.u("ä").encode("utf-8")], [six.u("ä")]),
+            (
+                [six.u("ä").encode("utf-8"), six.u("ö").encode("utf-8")],
+                [six.u("ä"), six.u("ö")]
+            )
         ]
     )
 
@@ -188,7 +194,7 @@ class IntegerTestCase(TestCase):
 
     test_parse = make_parse_test(
         Integer,
-        [(["1"], 1)],
+        [([b"1"], 1)],
         [(["1", "2", "3"], [1, 2, 3])],
         [
             (["1"], [1]),

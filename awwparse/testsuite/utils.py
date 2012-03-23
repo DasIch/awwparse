@@ -45,7 +45,7 @@ class UtilsTestCase(TestCase):
         self.assert_equal(object.bar, 4)
 
     def test_missing(self):
-        self.assert_(not missing)
+        self.assert_true(not missing)
         self.assert_equal(repr(missing), "missing")
 
     def test_force_list(self):

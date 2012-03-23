@@ -10,6 +10,7 @@ import sys
 import textwrap
 from collections import deque
 
+import six
 
 from awwparse.utils import (
     set_attributes_from_kwargs, missing, force_list, get_terminal_width,
@@ -41,11 +42,14 @@ class Arguments(object):
     def __iter__(self):
         return self
 
+    def __next__(self):
+        return self.next()
+
     def next(self):
         if self._remaining:
             argument = self._remaining.popleft()
         else:
-            argument = self._arguments.next()
+            argument = next(self._arguments)
         self.trace.append(argument)
         return argument
 
@@ -84,7 +88,7 @@ class Command(object):
     def __init__(self):
         self.options = self.options.copy()
         self.commands = {}
-        for name, command in self.__class__.commands.iteritems():
+        for name, command in self.__class__.commands.items():
             self.add_command(name, command.copy())
         self.arguments = parse_argument_signature(
             force_list(self.__class__.arguments)
@@ -93,32 +97,32 @@ class Command(object):
 
     @property
     def option_prefixes(self):
-        return {option.name_prefix for option in self.options.itervalues()}
+        return {option.name_prefix for option in self.options.values()}
 
     @property
     def abbreviated_option_prefixes(self):
         return {
-            option.abbreviation_prefix for option in self.options.itervalues()
+            option.abbreviation_prefix for option in self.options.values()
         }
 
     @property
     def option_shorts(self):
         return {
-            option.short: option for option in self.options.itervalues()
+            option.short: option for option in self.options.values()
             if option.short is not None
         }
 
     @property
     def option_longs(self):
         return {
-            option.long: option for option in self.options.itervalues()
+            option.long: option for option in self.options.values()
             if option.long is not None
         }
 
     @property
     def defaults(self):
         return {
-            name: option.default for name, option in self.options.iteritems()
+            name: option.default for name, option in self.options.items()
             if option.default is not missing
         }
 
@@ -126,17 +130,17 @@ class Command(object):
         result = [] if arguments is None else arguments.trace[:-1]
         if self.options:
             result.extend(
-                "[%s]" % option.get_usage()
+                six.u("[%s]") % option.get_usage()
                 for option in sorted(
-                    self.options.itervalues(),
+                    self.options.values(),
                     key=lambda option: option.short is None
                 )
             )
         if self.commands:
-            result.append("{%s}" % ",".join(self.commands))
+            result.append(six.u("{%s}") % six.u(",").join(self.commands))
         if self.arguments:
             result.extend(argument.usage for argument in self.arguments)
-        return " ".join(result)
+        return six.u(" ").join(result)
 
     def add_option(self, name, option, force=False):
         arguments = None
@@ -201,40 +205,45 @@ class Command(object):
 
     def _print_message(self, message, prefix=None, stream=None):
         if prefix is not None:
-            message = "%s%s" % (prefix, message)
+            message = six.u("%s%s") % (prefix, message)
         if stream is None:
             stream = self.stdout
-        indent = " " * len(prefix) if prefix else ""
+        indent = six.u(" ") * len(prefix) if prefix else six.u("")
         stream.write(
-            "\n".join(
+            six.u("\n").join(
                 textwrap.wrap(
                     message,
                     self.width,
                     subsequent_indent=indent,
                     break_long_words=False
                 )
-            ) + "\n"
+            ) + six.u("\n")
         )
 
+    def _print_newline(self, stream=None):
+        if stream is None:
+            stream = self.stdout
+        stream.write(six.u("\n"))
+
     def print_usage(self, arguments=None):
-        self._print_message(self.get_usage(arguments), prefix="Usage: ")
+        self._print_message(self.get_usage(arguments), prefix=six.u("Usage: "))
 
     def print_error(self, error):
-        self._print_message(error, prefix="Error: ", stream=self.stderr)
+        self._print_message(error, prefix=six.u("Error: "), stream=self.stderr)
 
     def print_help(self, arguments=None):
         self.print_usage(arguments)
-        self.stdout.write("\n")
+        self._print_newline()
         if self.help is not None:
             self._print_message(self.help)
         if self.arguments:
             self._print_arguments_help()
             if self.options or self.commands:
-                self.stdout.write("\n")
+                self._print_newline()
         if self.options:
             self._print_options_help()
             if self.commands:
-                self.stdout.write("\n")
+                self._print_newline()
         if self.commands:
             self._print_commands_help()
 
@@ -265,9 +274,10 @@ class Command(object):
                     .strip()
                 )
             output.extend(wrapped)
-        self.stdout.write("\n".join(
-            "%s%s" % (" " * self.section_indent, line) for line in output
-        ) + "\n")
+        self.stdout.write(six.u("\n").join(
+            six.u("%s%s") % (six.u(" ") * self.section_indent, line)
+            for line in output
+        ) + six.u("\n"))
 
     def _print_arguments_help(self):
         self._print_columns(
@@ -280,7 +290,7 @@ class Command(object):
             "Options",
             (
                 (option.get_usage(using="both"), option.help)
-                for option in self.options.itervalues()
+                for option in self.options.values()
             )
         )
 
@@ -289,7 +299,7 @@ class Command(object):
             "Commands",
             (
                 (name, command.help)
-                for name, command in self.commands.iteritems()
+                for name, command in self.commands.items()
             )
         )
 
@@ -299,7 +309,7 @@ class Command(object):
             return argument, self.commands[argument], ""
         else:
             modified_argument = argument
-            for name, option in self.options.iteritems():
+            for name, option in self.options.items():
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
                     return name, option, modified_argument
@@ -321,7 +331,7 @@ class Command(object):
                     name, match, modified = self.get_match(argument)
                 except UnexpectedArgument as unexcepted_argument:
                     try:
-                        positional = expected_positionals.next()
+                        positional = next(expected_positionals)
                     except StopIteration:
                         raise unexcepted_argument
                     else:
@@ -338,7 +348,7 @@ class Command(object):
                             break
                         name, option, modified = self.get_match(modified)
             try:
-                positional = expected_positionals.next()
+                positional = next(expected_positionals)
             except StopIteration:
                 pass
             else:

@@ -8,7 +8,9 @@
 """
 import unittest
 import re
-from itertools import imap, chain
+from itertools import chain
+
+from six.moves import map
 
 from awwparse import Command
 
@@ -68,7 +70,7 @@ def find_all_tests(s):
             s._testMethodName
         )
     else:
-        for grand_child in chain.from_iterable(imap(find_all_tests, s)):
+        for grand_child in chain.from_iterable(map(find_all_tests, s)):
             yield grand_child
 
 
