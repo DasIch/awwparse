@@ -13,7 +13,7 @@ import six
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Type, Any, Number,
-    Choice, Boolean, Last, List, Set, Adder, ContainerType
+    Choice, Boolean, Last, List, Set, Adder, ContainerType, NativeString
 )
 from awwparse.types import parse_type_signature
 from awwparse.exceptions import UserTypeError
@@ -71,30 +71,30 @@ class TypeTestCase(TestCase):
 class LastTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", Last(Bytes())))
+        command.add_option("foo", Option("a", Last(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": "bar"}
+            {"foo": six.u("bar")}
         )
 
 
 class ListTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", List(Bytes())))
+        command.add_option("foo", Option("a", List(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": ["foo", "bar"]}
+            {"foo": [six.u("foo"), six.u("bar")]}
         )
 
 
 class SetTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", Set(Bytes())))
+        command.add_option("foo", Option("a", Set(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": {"foo", "bar"}}
+            {"foo": {six.u("foo"), six.u("bar")}}
         )
 
 
@@ -137,11 +137,11 @@ def make_parse_test(type, single, remaining, optional):
 class BytesTestCase(TestCase):
     test_parse = make_parse_test(
         Bytes,
-        [(["foo"], "foo")],
-        [(["foo", "bar", "baz"], ["foo", "bar", "baz"])],
+        [(["foo"], b"foo")],
+        [(["foo", "bar", "baz"], [b"foo", b"bar", b"baz"])],
         [
-            (["foo"], ["foo"]),
-            (["foo", "bar"], ["foo", "bar"])
+            (["foo"], [b"foo"]),
+            (["foo", "bar"], [b"foo", b"bar"])
         ]
     )
 
@@ -172,6 +172,18 @@ class StringTestCase(TestCase):
                 [six.u("ä").encode("utf-8"), six.u("ö").encode("utf-8")],
                 [six.u("ä"), six.u("ö")]
             )
+        ]
+    )
+
+
+class NativeStringTestCase(TestCase):
+    test_parse = make_parse_test(
+        NativeString,
+        [(["foo"], "foo")],
+        [(["foo", "bar", "baz"], ["foo", "bar", "baz"])],
+        [
+            (["foo"], ["foo"]),
+            (["foo", "bar"], ["foo", "bar"])
         ]
     )
 
@@ -312,5 +324,5 @@ suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
     ChoiceTestCase, BooleanTestCase, TypeTestCase, TypesTestCase, LastTestCase,
-    ListTestCase, SetTestCase, AdderTestCase
+    ListTestCase, SetTestCase, AdderTestCase, NativeStringTestCase
 ])

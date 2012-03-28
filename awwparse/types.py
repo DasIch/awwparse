@@ -15,6 +15,8 @@ try:
 except NameError:
     from functools import reduce
 
+import six
+
 from awwparse.utils import missing, force_list
 from awwparse.exceptions import (
     UserTypeError, ArgumentMissing, EndOptionParsing
@@ -172,25 +174,43 @@ class Type(object):
         )
 
 
-class Bytes(Type):
-    def parse(self, command, arguments):
-        if self.remaining:
-            return list(arguments)
+class EncodingType(Type):
+    error_method = "replace"
+
+    def get_encoding(self, command):
+        return getattr(command, "stdin.encoding", locale.getpreferredencoding())
+
+
+class Bytes(EncodingType):
+    def encode(self, string, encoding):
+        if isinstance(string, six.binary_type):
+            return string
         try:
-            return self.get_next_argument(command, arguments)
+            return string.encode(encoding, self.error_method)
+        except UnicodeEncodeError:
+            raise UserTypeError(
+                "failed to decode %r with %r" % (string, encoding)
+            )
+
+    def parse(self, command, arguments):
+        encoding = self.get_encoding(command)
+        if self.remaining:
+            return [self.encode(string, encoding) for string in arguments]
+        try:
+            return self.encode(
+                self.get_next_argument(command, arguments),
+                encoding
+            )
         except ArgumentMissing:
             if self.optional:
                 raise EndOptionParsing()
             raise
 
 
-class String(Type):
-    error_method = "replace"
-
-    def get_encoding(self, command):
-        return getattr(command, "stdin.encoding", locale.getpreferredencoding())
-
+class String(EncodingType):
     def decode(self, bytes, encoding):
+        if isinstance(bytes, six.text_type):
+            return bytes
         try:
             return bytes.decode(encoding, self.error_method)
         except UnicodeDecodeError:
@@ -207,6 +227,18 @@ class String(Type):
                 self.get_next_argument(command, arguments),
                 encoding
             )
+        except ArgumentMissing:
+            if self.optional:
+                raise EndOptionParsing()
+            raise
+
+
+class NativeString(Type):
+    def parse(self, command, arguments):
+        if self.remaining:
+            return list(arguments)
+        try:
+            return self.get_next_argument(command, arguments)
         except ArgumentMissing:
             if self.optional:
                 raise EndOptionParsing()

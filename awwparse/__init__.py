@@ -24,12 +24,12 @@ from awwparse.exceptions import (
 # imported for the API
 from awwparse.types import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    Type, Boolean, Last, List, Set, Adder, ContainerType
+    Type, Boolean, Last, List, Set, Adder, ContainerType, NativeString
 )
 # keeps pyflakes happy
 assert (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type,
-    Boolean, Last, List, Set, Adder
+    Boolean, Last, List, Set, Adder, NativeString
 )
 
 

@@ -11,8 +11,11 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+import six
+
 from awwparse import (
-    Option, Bytes, Command, Last, List, Arguments, Argument, CLI, Integer
+    Option, Command, Last, List, Arguments, Argument, CLI, Integer,
+    String
 )
 from awwparse.utils import missing
 from awwparse.exceptions import (
@@ -37,20 +40,20 @@ class OptionTestCase(TestCase):
         class TestOption(Option):
             container_type = List
 
-        command = make_command({"foo": TestOption("a", Bytes())})
+        command = make_command({"foo": TestOption("a", String())})
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": ["foo", "bar"]}
+            {"foo": [six.u("foo"), six.u("bar")]}
         )
 
     def test_signature(self):
-        command = make_command({"option": Option("o", Bytes(), Bytes(), Bytes())})
+        command = make_command({"option": Option("o", String(), String(), String())})
         for args in [["-o"], ["-o", "foo"], ["-o", "foo", "bar"]]:
             with self.assert_raises(ArgumentMissing):
                 command.run(args, passthrough_errors=True)
 
-        command = make_command({"option": Option("o", Bytes(), [Bytes(), Bytes()])})
-        self.assert_equal(command.run(["-o", "a"]), {"option": ["a"]})
+        command = make_command({"option": Option("o", String(), [String(), String()])})
+        self.assert_equal(command.run(["-o", "a"]), {"option": [six.u("a")]})
         self.assert_equal(
             command.run(["-o", "a", "b", "c"]),
             {"option": ["a", "b", "c"]}
@@ -60,7 +63,7 @@ class OptionTestCase(TestCase):
                 command.run(args, passthrough_errors=True)
 
         command = make_command({
-            "option": Option("o", Bytes(), [Bytes(), [Bytes()]])
+            "option": Option("o", String(), [String(), [String()]])
         })
         args = ["-o", "a", "b", "c"]
         for i in range(2, len(args) + 1):
@@ -70,53 +73,56 @@ class OptionTestCase(TestCase):
             )
 
     def test_default(self):
-        command = make_command({"option": Option("o", Bytes())})
+        command = make_command({"option": Option("o", String())})
         self.assert_equal(command.options["option"].default, missing)
         self.assert_equal(command.run([]), {})
 
         command = make_command(
-            {"option": Option("o", Bytes(default="foobar"))}
+            {"option": Option("o", String(default="foobar"))}
         )
         self.assert_equal(command.options["option"].default, "foobar")
         self.assert_equal(command.run([]), {"option": "foobar"})
 
     def test_get_usage(self):
-        option = Option("a", Bytes(metavar="foo"))
+        option = Option("a", String(metavar="foo"))
         self.assert_equal(option.get_usage(), "-a foo")
         self.assert_equal(option.get_usage(using="long"), "-a foo")
         self.assert_equal(option.get_usage(using="both"), "-a foo")
 
-        option = Option("a", "abc", Bytes(metavar="foo"))
+        option = Option("a", "abc", String(metavar="foo"))
         self.assert_equal(option.get_usage(), "-a foo")
         self.assert_equal(option.get_usage(using="long"), "--abc foo")
         self.assert_equal(option.get_usage(using="both"), "-a, --abc foo")
 
     def test_abbreviation_prefix(self):
-        command = make_command({"option": Option("o", Bytes())})
+        command = make_command({"option": Option("o", String())})
         self.assert_equal(command.options["option"].abbreviation_prefix, "-")
         self.assert_true(command.options["option"].matches("-o"))
 
         command = make_command({
-            "option": Option("o", Bytes(), abbreviation_prefix="+")
+            "option": Option("o", String(), abbreviation_prefix="+")
         })
         self.assert_equal(command.options["option"].abbreviation_prefix, "+")
         self.assert_true(command.options["option"].matches("+o"))
-        self.assert_equal(command.run(["+o", "foo"]), {"option": "foo"})
+        self.assert_equal(command.run(["+o", "foo"]), {"option": six.u("foo")})
 
     def test_name_prefix(self):
-        command = make_command({"option": Option("option", Bytes())})
+        command = make_command({"option": Option("option", String())})
         self.assert_equal(command.options["option"].name_prefix, "--")
         self.assert_true(command.options["option"].matches("--option"))
 
         command = make_command({
-            "option": Option("option", Bytes(), name_prefix="++")
+            "option": Option("option", String(), name_prefix="++")
         })
         self.assert_equal(command.options["option"].name_prefix, "++")
         self.assert_true(command.options["option"].matches("++option"))
-        self.assert_equal(command.run(["++option", "foo"]), {"option": "foo"})
+        self.assert_equal(
+            command.run(["++option", "foo"]),
+            {"option": six.u("foo")}
+        )
 
     def test_matches(self):
-        option = Option("o", "option", Bytes())
+        option = Option("o", "option", String())
         self.assert_equal(option.matches("-a"), (False, "-a"))
         self.assert_equal(option.matches("-o"), (True, ""))
         self.assert_equal(option.matches("--asd"), (False, "--asd"))
@@ -124,12 +130,12 @@ class OptionTestCase(TestCase):
 
     def test_repr(self):
         self.assert_true(
-            repr(Option("o", Bytes())).startswith("Option('o', Last")
+            repr(Option("o", String())).startswith("Option('o', Last")
         )
         self.assert_true(
-            repr(Option("option", Bytes())).startswith("Option('option', Last")
+            repr(Option("option", String())).startswith("Option('option', Last")
         )
-        signature = Last(Bytes())
+        signature = Last(String())
         self.assert_equal(
             repr(Option("o", "option", signature)),
             "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--', help=None)" % signature
@@ -139,33 +145,33 @@ class OptionTestCase(TestCase):
 class CommandTestCase(TestCase):
     def test_option_shorts_and_longs(self):
         command = Command()
-        command.add_option("foo", Option("a", Bytes()))
-        command.add_option("bar", Option("abc", Bytes()))
+        command.add_option("foo", Option("a", String()))
+        command.add_option("bar", Option("abc", String()))
         self.assert_not_in(None, command.option_shorts)
         self.assert_not_in(None, command.option_longs)
 
     def test_get_usage(self):
         command = Command()
-        command.add_option("foo", Option("o", Bytes()))
+        command.add_option("foo", Option("o", String()))
         self.assert_equal(command.get_usage(), "[-o foo]")
 
         command.add_command("bar", Command())
         self.assert_equal(command.get_usage(), "[-o foo] {bar}")
 
-        command.add_argument(Argument(Bytes(), "baz"))
+        command.add_argument(Argument(String(), "baz"))
         self.assert_equal(command.get_usage(), "[-o foo] {bar} baz")
 
     def test_add_option(self):
         command = Command()
-        a = Option("a", "foobar", Bytes())
+        a = Option("a", "foobar", String())
         command.add_option("foo", a)
         with self.assert_raises(OptionConflict):
             command.add_option("bar", a)
         with self.assert_raises(OptionConflict):
-            command.add_option("baz", Option("foobar", Bytes()))
+            command.add_option("baz", Option("foobar", String()))
         with self.assert_raises(OptionConflict):
-            command.add_option("foo", Option("something", Bytes()))
-        command.add_option("foo", Option("something", Bytes()), force=True)
+            command.add_option("foo", Option("something", String()))
+        command.add_option("foo", Option("something", String()), force=True)
         self.assert_equal(command.options["foo"].name, "something")
 
     def test_add_command(self):
@@ -194,31 +200,31 @@ class CommandTestCase(TestCase):
             Command().run(["unexpected"], passthrough_errors=True)
 
         command = Command()
-        command.add_option("foo", Option("b", Bytes()))
+        command.add_option("foo", Option("b", String()))
         with self.assert_raises(UnexpectedArgument):
             command.run(["-a"], passthrough_errors=True)
 
     def test_main(self):
         class TestCommand(Command):
             options = {
-                "foo": Option("a", Bytes()),
-                "bar": Option("b", Bytes())
+                "foo": Option("a", String()),
+                "bar": Option("b", String())
             }
 
             def main(self, foo, bar):
-                assert foo == "foo"
-                assert bar == "bar"
+                assert foo == six.u("foo")
+                assert bar == six.u("bar")
         TestCommand().run(["-a", "foo", "-b", "bar"])
 
     def test_multiple_abbreviations(self):
         command = make_command({
-            "a": Option("a", Bytes()),
-            "b": Option("b", Bytes()),
-            "c": Option("c", Bytes())
+            "a": Option("a", String()),
+            "b": Option("b", String()),
+            "c": Option("c", String())
         })
         self.assert_equal(
             command.run(["-abc", "foo", "bar", "baz"]),
-            {"a": "foo", "b": "bar", "c": "baz"}
+            {"a": six.u("foo"), "b": six.u("bar"), "c": six.u("baz")}
         )
 
     def test_subcommands(self):
@@ -243,25 +249,25 @@ class CommandTestCase(TestCase):
         class A(Command):
             def main(self, **kwargs):
                 assert "foo" in kwargs
-                assert kwargs["foo"] == "bar"
+                assert kwargs["foo"] == six.u("bar")
 
         class B(Command):
-            options = {"foo": Option("a", Bytes())}
+            options = {"foo": Option("a", String())}
             commands = {"spam": A()}
 
         B().run(["-a", "bar", "spam"])
 
     def test_arguments(self):
         class TestCommand(Command):
-            arguments = Argument(Bytes(), "foo")
+            arguments = Argument(String(), "foo")
 
             def main(self, foo):
-                assert foo == "foo"
+                assert foo == six.u("foo")
 
         TestCommand().run(["foo"])
 
         class TestCommand(Command):
-            arguments = Argument(Bytes(), "foo"), Argument(Bytes(), "bar")
+            arguments = Argument(String(), "foo"), Argument(String(), "bar")
 
             def main(self, foo, bar):
                 assert foo == "foo"
@@ -296,18 +302,18 @@ class ArgumentsTestCase(TestCase):
 
 class ArgumentTestCase(TestCase):
     def test_usage(self):
-        self.assert_equal(Argument(Bytes(), "foo").usage, "foo")
+        self.assert_equal(Argument(String(), "foo").usage, "foo")
         self.assert_equal(
-            Argument(Bytes(), "foo", optional=True).usage,
+            Argument(String(), "foo", optional=True).usage,
             "[foo]"
         )
         self.assert_equal(
-            Argument(Bytes(), "foo", remaining=True).usage,
+            Argument(String(), "foo", remaining=True).usage,
             "[foo ...]"
         )
 
     def test_repr(self):
-        bytes = Bytes()
+        bytes = String()
         argument = Argument(bytes, "foo")
         self.assert_equal(
             repr(argument),
@@ -318,7 +324,7 @@ class ArgumentTestCase(TestCase):
 class CLITestCase(TestCase):
     def test_get_usage(self):
         cli = CLI(application_name="spam")
-        cli.add_argument(Argument(Bytes(), "foo"))
+        cli.add_argument(Argument(String(), "foo"))
         self.assert_equal(cli.get_usage(), "spam foo")
 
         cli.usage = "blubb"
@@ -342,7 +348,7 @@ class CLITestCase(TestCase):
     def test_print_help(self):
         stringio = StringIO()
         cli = CLI(application_name="app", stdout=stringio)
-        cli.add_argument(Argument(Bytes(), "foo"))
+        cli.add_argument(Argument(String(), "foo"))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), (
             "Usage: app foo\n"
@@ -352,7 +358,7 @@ class CLITestCase(TestCase):
         ))
 
         cli.stdout = stringio = StringIO()
-        cli.add_option("bar", Option("a", Bytes()))
+        cli.add_option("bar", Option("a", String()))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), (
             "Usage: app [-a bar] foo\n"
@@ -414,7 +420,7 @@ class CLITestCase(TestCase):
             application_name="app", stdout=stringio, stderr=stringio, exit=exit
         )
         command = Command()
-        command.add_option("foo", Option("o", Bytes()))
+        command.add_option("foo", Option("o", String()))
         cli.add_command("spam", command)
         with self.assert_raises(AssertionError) as error:
             cli.run(["spam", "-o"])
