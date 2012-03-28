@@ -11,7 +11,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-import six
+from six import u
 
 from awwparse import (
     Option, Command, Last, List, Arguments, Argument, CLI, Integer,
@@ -43,7 +43,7 @@ class OptionTestCase(TestCase):
         command = make_command({"foo": TestOption("a", String())})
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": [six.u("foo"), six.u("bar")]}
+            {"foo": [u("foo"), u("bar")]}
         )
 
     def test_signature(self):
@@ -53,7 +53,7 @@ class OptionTestCase(TestCase):
                 command.run(args, passthrough_errors=True)
 
         command = make_command({"option": Option("o", String(), [String(), String()])})
-        self.assert_equal(command.run(["-o", "a"]), {"option": [six.u("a")]})
+        self.assert_equal(command.run(["-o", "a"]), {"option": [u("a")]})
         self.assert_equal(
             command.run(["-o", "a", "b", "c"]),
             {"option": ["a", "b", "c"]}
@@ -104,7 +104,7 @@ class OptionTestCase(TestCase):
         })
         self.assert_equal(command.options["option"].abbreviation_prefix, "+")
         self.assert_true(command.options["option"].matches("+o"))
-        self.assert_equal(command.run(["+o", "foo"]), {"option": six.u("foo")})
+        self.assert_equal(command.run(["+o", "foo"]), {"option": u("foo")})
 
     def test_name_prefix(self):
         command = make_command({"option": Option("option", String())})
@@ -118,7 +118,7 @@ class OptionTestCase(TestCase):
         self.assert_true(command.options["option"].matches("++option"))
         self.assert_equal(
             command.run(["++option", "foo"]),
-            {"option": six.u("foo")}
+            {"option": u("foo")}
         )
 
     def test_matches(self):
@@ -212,8 +212,8 @@ class CommandTestCase(TestCase):
             }
 
             def main(self, foo, bar):
-                assert foo == six.u("foo")
-                assert bar == six.u("bar")
+                assert foo == u("foo")
+                assert bar == u("bar")
         TestCommand().run(["-a", "foo", "-b", "bar"])
 
     def test_multiple_abbreviations(self):
@@ -224,7 +224,7 @@ class CommandTestCase(TestCase):
         })
         self.assert_equal(
             command.run(["-abc", "foo", "bar", "baz"]),
-            {"a": six.u("foo"), "b": six.u("bar"), "c": six.u("baz")}
+            {"a": u("foo"), "b": u("bar"), "c": u("baz")}
         )
 
     def test_subcommands(self):
@@ -249,7 +249,7 @@ class CommandTestCase(TestCase):
         class A(Command):
             def main(self, **kwargs):
                 assert "foo" in kwargs
-                assert kwargs["foo"] == six.u("bar")
+                assert kwargs["foo"] == u("bar")
 
         class B(Command):
             options = {"foo": Option("a", String())}
@@ -262,7 +262,7 @@ class CommandTestCase(TestCase):
             arguments = Argument(String(), "foo")
 
             def main(self, foo):
-                assert foo == six.u("foo")
+                assert foo == u("foo")
 
         TestCommand().run(["foo"])
 

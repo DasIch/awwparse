@@ -10,7 +10,7 @@ import sys
 import textwrap
 from collections import deque
 
-import six
+from six import u
 
 from awwparse.utils import (
     set_attributes_from_kwargs, missing, force_list, get_terminal_width,
@@ -130,17 +130,17 @@ class Command(object):
         result = [] if arguments is None else arguments.trace[:-1]
         if self.options:
             result.extend(
-                six.u("[%s]") % option.get_usage()
+                u("[%s]") % option.get_usage()
                 for option in sorted(
                     self.options.values(),
                     key=lambda option: option.short is None
                 )
             )
         if self.commands:
-            result.append(six.u("{%s}") % six.u(",").join(self.commands))
+            result.append(u("{%s}") % u(",").join(self.commands))
         if self.arguments:
             result.extend(argument.usage for argument in self.arguments)
-        return six.u(" ").join(result)
+        return u(" ").join(result)
 
     def add_option(self, name, option, force=False):
         arguments = None
@@ -205,31 +205,31 @@ class Command(object):
 
     def _print_message(self, message, prefix=None, stream=None):
         if prefix is not None:
-            message = six.u("%s%s") % (prefix, message)
+            message = u("%s%s") % (prefix, message)
         if stream is None:
             stream = self.stdout
-        indent = six.u(" ") * len(prefix) if prefix else six.u("")
+        indent = u(" ") * len(prefix) if prefix else u("")
         stream.write(
-            six.u("\n").join(
+            u("\n").join(
                 textwrap.wrap(
                     message,
                     self.width,
                     subsequent_indent=indent,
                     break_long_words=False
                 )
-            ) + six.u("\n")
+            ) + u("\n")
         )
 
     def _print_newline(self, stream=None):
         if stream is None:
             stream = self.stdout
-        stream.write(six.u("\n"))
+        stream.write(u("\n"))
 
     def print_usage(self, arguments=None):
-        self._print_message(self.get_usage(arguments), prefix=six.u("Usage: "))
+        self._print_message(self.get_usage(arguments), prefix=u("Usage: "))
 
     def print_error(self, error):
-        self._print_message(error, prefix=six.u("Error: "), stream=self.stderr)
+        self._print_message(error, prefix=u("Error: "), stream=self.stderr)
 
     def print_help(self, arguments=None):
         self.print_usage(arguments)
@@ -274,10 +274,10 @@ class Command(object):
                     .strip()
                 )
             output.extend(wrapped)
-        self.stdout.write(six.u("\n").join(
-            six.u("%s%s") % (six.u(" ") * self.section_indent, line)
+        self.stdout.write(u("\n").join(
+            u("%s%s") % (u(" ") * self.section_indent, line)
             for line in output
-        ) + six.u("\n"))
+        ) + u("\n"))
 
     def _print_arguments_help(self):
         self._print_columns(

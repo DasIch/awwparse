@@ -10,6 +10,7 @@ import decimal
 from functools import partial
 
 import six
+from six import u
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Type, Any, Number,
@@ -74,7 +75,7 @@ class LastTestCase(TestCase):
         command.add_option("foo", Option("a", Last(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": six.u("bar")}
+            {"foo": u("bar")}
         )
 
 
@@ -84,7 +85,7 @@ class ListTestCase(TestCase):
         command.add_option("foo", Option("a", List(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": [six.u("foo"), six.u("bar")]}
+            {"foo": [u("foo"), u("bar")]}
         )
 
 
@@ -94,7 +95,7 @@ class SetTestCase(TestCase):
         command.add_option("foo", Option("a", Set(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": {six.u("foo"), six.u("bar")}}
+            {"foo": {u("foo"), u("bar")}}
         )
 
 
@@ -149,10 +150,10 @@ class BytesTestCase(TestCase):
 class StringTestCase(TestCase):
     def test_wrong_encoding(self):
         string = String()
-        unknown_char = six.u("\ufffd") * (2 if six.PY3 else 4)
+        unknown_char = u("\ufffd") * (2 if six.PY3 else 4)
         self.assert_equal(
-            string.decode(six.u("ündecödäble").encode("utf-8"), "ascii"),
-            six.u("%(u)sndec%(u)sd%(u)sble") % {"u": unknown_char}
+            string.decode(u("ündecödäble").encode("utf-8"), "ascii"),
+            u("%(u)sndec%(u)sd%(u)sble") % {"u": unknown_char}
         )
 
     def test_decode_strict(self):
@@ -160,17 +161,17 @@ class StringTestCase(TestCase):
             error_method = "strict"
         string = TestString()
         with self.assert_raises(UserTypeError):
-            string.decode(six.u("ündecödäble").encode("utf-8"), "ascii")
+            string.decode(u("ündecödäble").encode("utf-8"), "ascii")
 
     test_parse = make_parse_test(
         String,
-        [([six.u("ä").encode("utf-8")], six.u("ä"))],
-        [([c.encode("utf-8") for c in six.u("äöü")], list(six.u("äöü")))],
+        [([u("ä").encode("utf-8")], u("ä"))],
+        [([c.encode("utf-8") for c in u("äöü")], list(u("äöü")))],
         [
-            ([six.u("ä").encode("utf-8")], [six.u("ä")]),
+            ([u("ä").encode("utf-8")], [u("ä")]),
             (
-                [six.u("ä").encode("utf-8"), six.u("ö").encode("utf-8")],
-                [six.u("ä"), six.u("ö")]
+                [u("ä").encode("utf-8"), u("ö").encode("utf-8")],
+                [u("ä"), u("ö")]
             )
         ]
     )
