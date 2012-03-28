@@ -5,6 +5,7 @@ from setuptools import setup
 setup(
     name="Awwparse",
     version="0.1-dev",
+    description="A parser for command line arguments",
     url="http://github.com/DasIch/awwparse",
     license="BSD",
     author="Daniel Neuhäuser",
