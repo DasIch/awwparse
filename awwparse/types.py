@@ -16,6 +16,7 @@ except NameError:
     from functools import reduce
 
 import six
+from six import u
 
 from awwparse.utils import missing, force_list
 from awwparse.exceptions import (
@@ -66,13 +67,15 @@ class ContainerType(object):
             if isinstance(tree, Type):
                 return tree.usage
             else:
-                nodes = " ".join(render(node, _root=False) for node in tree)
+                nodes = u(" ").join(render(node, _root=False) for node in tree)
                 if _root:
                     return nodes
-                return "[%s]" % nodes
+                return u("[%s]") % nodes
         return render(reduce(step, self.types, ([], ) * 2)[0])
 
     def setdefault_metavars(self, metavar):
+        if isinstance(metavar, six.binary_type):
+            metavar = metavar.decode("utf-8")
         for type in self.types:
             if type.metavar is None:
                 type.metavar = metavar
@@ -151,7 +154,7 @@ class Type(object):
     @property
     def usage(self):
         if self.remaining:
-            return "[%s ...]" % self.metavar
+            return u("[%s ...]") % self.metavar
         return self.metavar
 
     def parse(self, command, arguments):
@@ -353,7 +356,7 @@ class Boolean(Type):
 
     @property
     def usage(self):
-        return ""
+        return u("")
 
     def parse(self, command, arguments):
         return not self.default

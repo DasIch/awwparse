@@ -268,9 +268,9 @@ class Command(object):
                 try:
                     first_line = wrapped.pop(0)
                 except IndexError:
-                    first_line = ""
+                    first_line = u("")
                 output.append(
-                    ("%s%s" % (left.ljust(left_column_length), first_line))
+                    (u("%s%s") % (left.ljust(left_column_length), first_line))
                     .strip()
                 )
             output.extend(wrapped)
@@ -281,13 +281,13 @@ class Command(object):
 
     def _print_arguments_help(self):
         self._print_columns(
-            "Positional Arguments",
+            u("Positional Arguments"),
             ((argument.metavar, argument.help) for argument in self.arguments)
         )
 
     def _print_options_help(self):
         self._print_columns(
-            "Options",
+            u("Options"),
             (
                 (option.get_usage(using="both"), option.help)
                 for option in self.options.values()
@@ -296,7 +296,7 @@ class Command(object):
 
     def _print_commands_help(self):
         self._print_columns(
-            "Commands",
+            u("Commands"),
             (
                 (name, command.help)
                 for name, command in self.commands.items()
@@ -427,9 +427,9 @@ class Argument(object):
     @property
     def usage(self):
         if self.remaining:
-            return "[%s ...]" % self.metavar
+            return u("[%s ...]") % self.metavar
         elif self.optional:
-            return "[%s]" % self.metavar
+            return u("[%s]") % self.metavar
         return self.metavar
 
     def parse(self, command, arguments):
@@ -536,13 +536,13 @@ class Option(object):
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
         if using == "both" and self.short and self.long:
-            caller = "%s, %s" % (self.short, self.long)
+            caller = u("%s, %s") % (self.short, self.long)
         elif (using == "short" and self.short or
               using in {"long", "both"} and not self.long):
             caller = self.short
         else:
             caller = self.long
-        return "%s %s" % (
+        return u("%s %s") % (
             caller,
             self.parser.usage
         )
@@ -590,7 +590,7 @@ class CLI(Command):
 
     def get_usage(self, arguments=None):
         if self.usage is None:
-            return "%s %s" % (self.application_name, Command.get_usage(self))
+            return u("%s %s") % (self.application_name, Command.get_usage(self))
         return self.usage
 
     def run(self, arguments=sys.argv[1:], passthrough_errors=False):

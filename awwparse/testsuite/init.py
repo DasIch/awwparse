@@ -78,21 +78,21 @@ class OptionTestCase(TestCase):
         self.assert_equal(command.run([]), {})
 
         command = make_command(
-            {"option": Option("o", String(default="foobar"))}
+            {"option": Option("o", String(default=u("foobar")))}
         )
-        self.assert_equal(command.options["option"].default, "foobar")
-        self.assert_equal(command.run([]), {"option": "foobar"})
+        self.assert_equal(command.options["option"].default, u("foobar"))
+        self.assert_equal(command.run([]), {"option": u("foobar")})
 
     def test_get_usage(self):
-        option = Option("a", String(metavar="foo"))
+        option = Option("a", String(metavar=u("foo")))
         self.assert_equal(option.get_usage(), "-a foo")
-        self.assert_equal(option.get_usage(using="long"), "-a foo")
-        self.assert_equal(option.get_usage(using="both"), "-a foo")
+        self.assert_equal(option.get_usage(using="long"), u("-a foo"))
+        self.assert_equal(option.get_usage(using="both"), u("-a foo"))
 
-        option = Option("a", "abc", String(metavar="foo"))
+        option = Option("a", "abc", String(metavar=u("foo")))
         self.assert_equal(option.get_usage(), "-a foo")
-        self.assert_equal(option.get_usage(using="long"), "--abc foo")
-        self.assert_equal(option.get_usage(using="both"), "-a, --abc foo")
+        self.assert_equal(option.get_usage(using="long"), u("--abc foo"))
+        self.assert_equal(option.get_usage(using="both"), u("-a, --abc foo"))
 
     def test_abbreviation_prefix(self):
         command = make_command({"option": Option("o", String())})
@@ -153,13 +153,13 @@ class CommandTestCase(TestCase):
     def test_get_usage(self):
         command = Command()
         command.add_option("foo", Option("o", String()))
-        self.assert_equal(command.get_usage(), "[-o foo]")
+        self.assert_equal(command.get_usage(), u("[-o foo]"))
 
         command.add_command("bar", Command())
-        self.assert_equal(command.get_usage(), "[-o foo] {bar}")
+        self.assert_equal(command.get_usage(), u("[-o foo] {bar}"))
 
         command.add_argument(Argument(String(), "baz"))
-        self.assert_equal(command.get_usage(), "[-o foo] {bar} baz")
+        self.assert_equal(command.get_usage(), u("[-o foo] {bar} baz"))
 
     def test_add_option(self):
         command = Command()
@@ -302,55 +302,56 @@ class ArgumentsTestCase(TestCase):
 
 class ArgumentTestCase(TestCase):
     def test_usage(self):
-        self.assert_equal(Argument(String(), "foo").usage, "foo")
+        self.assert_equal(Argument(String(), u("foo")).usage, u("foo"))
         self.assert_equal(
             Argument(String(), "foo", optional=True).usage,
-            "[foo]"
+            u("[foo]")
         )
         self.assert_equal(
-            Argument(String(), "foo", remaining=True).usage,
-            "[foo ...]"
+            Argument(String(), ("foo"), remaining=True).usage,
+            u("[foo ...]")
         )
 
     def test_repr(self):
         bytes = String()
-        argument = Argument(bytes, "foo")
+        argument = Argument(bytes, u("foo"))
         self.assert_equal(
             repr(argument),
-            "Argument(%r, 'foo', help=None)" % bytes
+            "Argument(%r, %r, help=None)" % (bytes, u("foo"))
         )
 
 
 class CLITestCase(TestCase):
     def test_get_usage(self):
-        cli = CLI(application_name="spam")
-        cli.add_argument(Argument(String(), "foo"))
-        self.assert_equal(cli.get_usage(), "spam foo")
+        cli = CLI(application_name=u("spam"))
+        cli.add_argument(Argument(String(), u("foo")))
+        self.assert_equal(cli.get_usage(), u("spam foo"))
 
-        cli.usage = "blubb"
-        self.assert_equal(cli.get_usage(), "blubb")
+        cli.usage = u("blubb")
+        self.assert_equal(cli.get_usage(), u("blubb"))
 
     def test_print_usage(self):
         stringio = StringIO()
         cli = CLI(
-            usage=("foobarbaz " * 20).strip(), width=80,
+            usage=(u("foobarbaz ") * 20).strip(),
+            width=80,
             stdout=stringio
         )
         cli.print_usage()
         self.assert_equal(
-            stringio.getvalue(),
-            ("Usage: foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
-             "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
-             "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+            stringio.getvalue(), u(
+                "Usage: foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+                "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+                "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
             )
         )
 
     def test_print_help(self):
         stringio = StringIO()
-        cli = CLI(application_name="app", stdout=stringio)
-        cli.add_argument(Argument(String(), "foo"))
+        cli = CLI(application_name=u("app"), stdout=stringio)
+        cli.add_argument(Argument(String(), u("foo")))
         cli.print_help()
-        self.assert_equal(stringio.getvalue(), (
+        self.assert_equal(stringio.getvalue(), u(
             "Usage: app foo\n"
             "\n"
             "Positional Arguments\n"
@@ -360,7 +361,7 @@ class CLITestCase(TestCase):
         cli.stdout = stringio = StringIO()
         cli.add_option("bar", Option("a", String()))
         cli.print_help()
-        self.assert_equal(stringio.getvalue(), (
+        self.assert_equal(stringio.getvalue(), u(
             "Usage: app [-a bar] foo\n"
             "\n"
             "Positional Arguments\n"
@@ -373,7 +374,7 @@ class CLITestCase(TestCase):
         cli.stdout = stringio = StringIO()
         cli.add_command("baz", Command())
         cli.print_help()
-        self.assert_equal(stringio.getvalue() , (
+        self.assert_equal(stringio.getvalue() , u(
             "Usage: app [-a bar] {baz} foo\n"
             "\n"
             "Positional Arguments\n"
@@ -394,7 +395,8 @@ class CLITestCase(TestCase):
         def exit(code):
             assert code != 1
         cli = TestCLI(
-            application_name="app", stdout=stringio, stderr=stringio, exit=exit
+            application_name=u("app"), stdout=stringio, stderr=stringio,
+            exit=exit
         )
         cli.add_option("foo", Option("o", Integer()))
         with self.assert_raises(AssertionError) as error:
@@ -404,7 +406,7 @@ class CLITestCase(TestCase):
         )
         self.assert_equal(
             stringio.getvalue(),
-            (
+            u(
                 "Error: 'foo' is not an integer\n"
                 "Usage: app [-o foo]\n"
                 "\n"
@@ -417,7 +419,8 @@ class CLITestCase(TestCase):
 
         stringio = StringIO()
         cli = TestCLI(
-            application_name="app", stdout=stringio, stderr=stringio, exit=exit
+            application_name=u("app"), stdout=stringio, stderr=stringio,
+            exit=exit
         )
         command = Command()
         command.add_option("foo", Option("o", String()))
@@ -430,7 +433,7 @@ class CLITestCase(TestCase):
         )
         self.assert_equal(
             stringio.getvalue(),
-            (
+            u(
                 "Error: foo\n"
                 "Usage: app spam [-o foo]\n"
                 "\n"

@@ -40,27 +40,27 @@ class TypesTestCase(TestCase):
 
 class TypeTestCase(TestCase):
     def test_usage(self):
-        container = ContainerType(Bytes(metavar="foo"))
-        self.assert_equal(container.usage, "foo")
+        container = ContainerType(Bytes(metavar=u("foo")))
+        self.assert_equal(container.usage, u("foo"))
 
-        container = ContainerType(Bytes(metavar="foo", optional=True))
-        self.assert_equal(container.usage, "[foo]")
-
-        container = ContainerType(
-            Bytes(metavar="foo"),
-            Bytes(metavar="bar", optional=True)
-        )
-        self.assert_equal(container.usage, "foo [bar]")
+        container = ContainerType(Bytes(metavar=u("foo"), optional=True))
+        self.assert_equal(container.usage, u("[foo]"))
 
         container = ContainerType(
-            Bytes(metavar="foo"),
-            Bytes(metavar="bar", optional=True),
-            Bytes(metavar="baz")
+            Bytes(metavar=u("foo")),
+            Bytes(metavar=u("bar"), optional=True)
         )
-        self.assert_equal(container.usage, "foo [bar baz]")
+        self.assert_equal(container.usage, u("foo [bar]"))
 
-        container = ContainerType(Bytes(metavar="foo", remaining=True))
-        self.assert_equal(container.usage, "[foo ...]")
+        container = ContainerType(
+            Bytes(metavar=("foo")),
+            Bytes(metavar=("bar"), optional=True),
+            Bytes(metavar=("baz"))
+        )
+        self.assert_equal(container.usage, u("foo [bar baz]"))
+
+        container = ContainerType(Bytes(metavar=u("foo"), remaining=True))
+        self.assert_equal(container.usage, u("[foo ...]"))
 
     def test_repr(self):
         self.assert_equal(
