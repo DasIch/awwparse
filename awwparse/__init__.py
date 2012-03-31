@@ -198,7 +198,6 @@ class Command(object):
         if signature.annotations:
             self._populate_from_signature(self, signature)
 
-
     @property
     def option_prefixes(self):
         """
