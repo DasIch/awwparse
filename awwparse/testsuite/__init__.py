@@ -6,10 +6,15 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-import unittest
 import re
+import sys
+import unittest
+import textwrap
+from functools import wraps
 from itertools import chain
 
+import six
+from six import exec_
 from six.moves import map
 
 from awwparse import Command
@@ -97,6 +102,20 @@ class TestLoader(unittest.TestLoader):
             raise LookupError("could not find a test case matching %r" % name)
 
         return unittest.TestSuite(tests)
+
+
+def py3test(function):
+    if six.PY3:
+        @wraps(function)
+        def new(self):
+            six.exec_(
+                textwrap.dedent(function.__doc__),
+                function.__globals__,
+                locals()
+            )
+        return new
+    else:
+        return function
 
 
 def main():

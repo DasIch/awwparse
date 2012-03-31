@@ -6,8 +6,15 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+from __future__ import absolute_import
 import os
 import math
+import inspect
+from types import FunctionType, MethodType
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
 
 
 #: The golden ratio.
@@ -86,3 +93,95 @@ def golden_split(n):
     large = int(round(large))
     small = int(round(small))
     return large, small
+
+
+try:
+    _getargspec = inspect.getfullargspec
+    _ArgSpec = inspect.FullArgSpec
+except AttributeError:
+    _getargspec = inspect.getargspec
+    _ArgSpec = inspect.ArgSpec
+
+
+class Signature(object):
+    """
+    Represents the signature of a callable object.
+    """
+    def __init__(self, positional_arguments, keyword_arguments, annotations,
+                 arbitary_positional_arguments=None,
+                 arbitary_keyword_arguments=None,
+                 defaults=None, documentation=None):
+        self.positional_arguments = positional_arguments
+        self.keyword_arguments = keyword_arguments
+        self.annotations = annotations
+        self.arbitary_positional_arguments = arbitary_positional_arguments
+        self.arbitary_keyword_arguments = arbitary_keyword_arguments
+        self.defaults = {} if defaults is None else defaults
+        self.documentation = documentation
+
+    @classmethod
+    def _from_argspec(cls, argspec, documentation=None):
+        defaults = {}
+        kwonlydefaults = getattr(argspec, "kwonlydefaults", None)
+        if kwonlydefaults is not None:
+            defaults.update(kwonlydefaults)
+        positional = []
+        keyword = []
+        for arg, default in zip_longest(reversed(argspec.args),
+                                        reversed(argspec.defaults or [])):
+            if default is None:
+                positional.append(arg)
+            else:
+                defaults[arg] = default
+                keyword.append(arg)
+        positional.reverse()
+        keyword.reverse()
+        keyword.extend(getattr(argspec, "kwonlyargs", []))
+        return cls(
+            positional,
+            keyword,
+            getattr(argspec, "annotations", {}),
+            argspec.varargs,
+            getattr(argspec, "varkw", getattr(argspec, "keywords", None)),
+            defaults,
+            documentation
+        )
+
+    @classmethod
+    def from_function(cls, function):
+        """
+        Returns a :class:`Signature` object for the given `function` or static
+        method.
+        """
+        return cls._from_argspec(
+            _getargspec(function), function.__doc__
+        )
+
+    @classmethod
+    def from_method(cls, method, documentation=None):
+        """
+        Returns a :class:`Signature` object for the given `method`.
+        """
+        argspec = _getargspec(method)
+        return cls._from_argspec(
+            _ArgSpec(
+                argspec.args[1:],
+                *list(argspec)[1:]
+            ),
+            method.__doc__ if documentation is None else documentation
+        )
+
+    @classmethod
+    def from_class(cls, class_):
+        """
+        Returns a :class:`Signature` object for the given `class_`.
+        """
+        return cls.from_method(class_.__init__, class_.__doc__)
+
+    @classmethod
+    def from_object(cls, object):
+        """
+        Returns a :class:`Signature` object for the given callable `object`
+        implementing :meth:`object.__call__()`.
+        """
+        return cls.from_method(object.__call__)

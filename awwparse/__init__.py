@@ -14,7 +14,7 @@ from six import u
 
 from awwparse.utils import (
     set_attributes_from_kwargs, missing, force_list, get_terminal_width,
-    golden_split, set_attributes
+    golden_split, set_attributes, Signature
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -91,6 +91,72 @@ class Command(object):
     arguments = ()
     #: A help message explaining this command.
     help = None
+
+    @classmethod
+    def _populate_from_signature(cls, command, signature):
+        def lookup_annotation(name):
+            try:
+                return signature.annotations[name]
+            except KeyError:
+                raise ValueError("missing annotation for: %s" % name)
+        for name in signature.positional_arguments:
+            annotation = lookup_annotation(name)
+            if isinstance(annotation, (Type, ContainerType)):
+                command.add_argument(Argument(annotation, name))
+            elif isinstance(annotation, Argument):
+                command.add_argument(annotation)
+            else:
+                raise ValueError("unexpected annotation: %r" % annotation)
+        if signature.arbitary_positional_arguments is not None:
+            name = signature.arbitary_positional_arguments
+            annotation = lookup_annotation(name)
+            if isinstance(annotation, (Type, ContainerType)):
+                command.add_argument(Argument(annotation, name, remaining=True))
+            elif isinstance(annotation, Argument):
+                command.add_argument(annotation)
+            else:
+                raise ValueError("unexpected annotation: %r" % annotation)
+        for name in signature.keyword_arguments:
+            annotation = lookup_annotation(name)
+            if isinstance(annotation, (Type, ContainerType)):
+                command.add_option(
+                    name,
+                    Option(name[0], name[1:], annotation),
+                    resolve_conflicts=True
+                )
+            elif isinstance(annotation, Option):
+                command.add_option(name, annotation)
+            else:
+                raise ValueError("unexcepted annotation: %r" % annotation)
+        command.help = signature.documentation
+        return command
+
+    @classmethod
+    def from_function(cls, function):
+        """
+        Returns a :class:`Command` object for the given annotated function.
+
+        Positional arguments are turned into arguments, keyword arguments are
+        turned into options and arbitary positional arguments are turned into
+        an argument that takes all remaining ones.
+
+        Each argument has to be given an annotation. Allowed annotations are
+        :class:`~awwparse.types.Type` objects and
+        :class:`~awwparse.types.ContainerType` objects. For (arbitary)
+        positional arguments you can also provide an :class:`Argument` object
+        and for keyword arguments an :class:`Option` object.
+
+        If an annotation is missing or has a wrong type a :exc:`ValueError` is
+        raised.
+        """
+        signature = Signature.from_function(function)
+        command = type(
+            function.__name__,
+            (cls, ),
+            {"main": staticmethod(function)}
+        )()
+        cls._populate_from_signature(command, signature)
+        return command
 
     def __init__(self):
         self.options = self.options.copy()
@@ -416,7 +482,7 @@ class Command(object):
                         raise unexcepted_argument
                     else:
                         arguments.rewind()
-                        args.append(positional.parse(self, arguments))
+                        args = positional.parse(self, args, arguments)
                 else:
                     while modified != previous_modified:
                         if hasattr(match, "run"):
@@ -523,8 +589,13 @@ class Argument(object):
             return u("[%s]") % self.metavar
         return self.metavar
 
-    def parse(self, command, arguments):
-        return self.type.parse(command, arguments)
+    def parse(self, command, result, arguments):
+        parsed = self.type.parse(command, arguments)
+        if self.remaining:
+            result.extend(parsed)
+        else:
+            result.append(parsed)
+        return result
 
     def __repr__(self):
         return "%s(%r, %r, help=%r)" % (

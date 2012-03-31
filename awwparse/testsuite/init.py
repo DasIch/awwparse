@@ -22,7 +22,7 @@ from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
     UnexpectedArgument, PositionalArgumentMissing, UserTypeError
 )
-from awwparse.testsuite import TestCase, make_suite
+from awwparse.testsuite import TestCase, make_suite, py3test
 
 
 def make_command(options=None, commands=None, command_cls=Command):
@@ -143,6 +143,26 @@ class OptionTestCase(TestCase):
 
 
 class CommandTestCase(TestCase):
+    @py3test
+    def test_from_function(self):
+        """
+        @Command.from_function
+        def foo(a: Integer(), b: Integer()):
+            return a + b
+        self.assert_equal(foo.run(["1", "1"]), 2)
+
+        @Command.from_function
+        def foo(*args: Integer()):
+            return sum(args)
+        self.assert_equal(foo.run(["1", "1"]), 2)
+
+        @Command.from_function
+        def foo(a: Integer() = 1, b: Integer() = 1):
+            return a + b
+        self.assert_equal(foo.run([]), 2)
+        self.assert_equal(foo.run(["-a", "2", "-b", "2"]), 4)
+        """
+
     def test_option_shorts_and_longs(self):
         command = Command()
         command.add_option("foo", Option("a", String()))

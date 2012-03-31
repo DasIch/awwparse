@@ -8,9 +8,9 @@
 """
 from awwparse.utils import (
     set_attributes, set_attributes_from_kwargs, missing, force_list,
-    get_terminal_width
+    get_terminal_width, Signature
 )
-from awwparse.testsuite import TestCase, make_suite
+from awwparse.testsuite import TestCase, make_suite, py3test
 
 
 class TestObject(object):
@@ -57,4 +57,82 @@ class UtilsTestCase(TestCase):
         self.assert_is_instance(get_terminal_width(), int)
 
 
-suite = make_suite([UtilsTestCase])
+class SignatureTestCase(TestCase):
+    def test_from_function(self):
+        function = lambda: None
+        signature = Signature.from_function(function)
+        self.assert_equal(signature.positional_arguments, [])
+        self.assert_equal(signature.keyword_arguments, [])
+        self.assert_equal(signature.annotations, {})
+        self.assert_equal(signature.arbitary_positional_arguments, None)
+        self.assert_equal(signature.arbitary_keyword_arguments, None)
+        self.assert_equal(signature.defaults, {})
+        self.assert_equal(signature.documentation, None)
+
+        function = lambda a, b: None
+        signature = Signature.from_function(function)
+        self.assert_equal(signature.positional_arguments, ["a", "b"])
+
+        function = lambda a=1, b=2: None
+        signature = Signature.from_function(function)
+        self.assert_equal(signature.positional_arguments, [])
+        self.assert_equal(signature.keyword_arguments, ["a", "b"])
+        self.assert_equal(signature.defaults, {"a": 1, "b": 2})
+
+        def function():
+            """Test"""
+        signature = Signature.from_function(function)
+        self.assert_equal(signature.documentation, "Test")
+
+    @py3test
+    def test_from_function_with_keyword_only_arguments(self):
+        """
+        function = lambda a=1, *args, b=2: None
+        signature = Signature.from_function(function)
+        self.assert_equal(signature.positional_arguments, [])
+        self.assert_equal(signature.keyword_arguments, ["a", "b"])
+        self.assert_equal(signature.defaults, {"a": 1, "b": 2})
+        """
+
+    @py3test
+    def test_from_function_with_annotations(self):
+        """
+        def function(a: int, b: int):
+            pass
+        signature = Signature.from_function(function)
+        self.assert_equal(signature.annotations, {"a": int, "b": int})
+        """
+
+    def test_from_method(self):
+        class TestClass(object):
+            def test_method(self, a, b):
+                """Test"""
+        signature = Signature.from_method(TestClass.test_method)
+        self.assert_equal(signature.positional_arguments, ["a", "b"])
+        self.assert_equal(signature.documentation, "Test")
+
+        signature = Signature.from_method(
+            TestClass.test_method,
+            documentation="Foo"
+        )
+        self.assert_equal(signature.documentation, "Foo")
+
+        signature = Signature.from_method(TestClass().test_method)
+        self.assert_equal(signature.positional_arguments, ["a", "b"])
+
+    def test_from_class(self):
+        class TestClass(object):
+            def __init__(self, a, b):
+                pass
+        signature = Signature.from_class(TestClass)
+        self.assert_equal(signature.positional_arguments, ["a", "b"])
+
+    def test_from_object(self):
+        class TestClass(object):
+            def __call__(self, a, b):
+                pass
+        signature = Signature.from_object(TestClass())
+        self.assert_equal(signature.positional_arguments, ["a", "b"])
+
+
+suite = make_suite([UtilsTestCase, SignatureTestCase])
