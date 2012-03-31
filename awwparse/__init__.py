@@ -221,7 +221,8 @@ class Command(object):
                 break
         if name is not None:
             del self.options[name]
-        raise ValueError("%r not found" % to_be_removed_option)
+        else:
+            raise ValueError("%r not found" % to_be_removed_option)
 
     def add_command(self, name, command, force=False):
         """
