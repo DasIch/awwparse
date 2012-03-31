@@ -164,7 +164,7 @@ class Command(object):
             result.extend(argument.usage for argument in self.arguments)
         return u(" ").join(result)
 
-    def add_option(self, name, option, force=False):
+    def add_option(self, name, option, force=False, resolve_conflicts=False):
         """
         Adds the `option` with `name` to the command.
 
@@ -172,21 +172,56 @@ class Command(object):
         the argument name abbreviation or the given `name` is identical to
         those of another option. If `force` is ``True`` it will ignore the
         latter kind of conflict and replace the old option with the given one.
+        If `resolve_conflicts` is ``True`` conflicts on argument names and
+        abbreviations thereof will be resolved if possible by removing
+        conflicting attributes.
         """
-        arguments = None
+        conflicting_options = []
+        if name in self.options:
+            conflicting_options.append((self.options[name], "name"))
         if option.short in self.option_shorts:
-            arguments = option, self.option_shorts[option.short], "short"
-        elif option.long in self.option_longs:
-            arguments = option, self.option_longs[option.long], "long"
-        elif not force and name in self.options:
-            arguments = option, self.options[name], "name"
-        if arguments:
-            raise OptionConflict(
-                "given option %r conflicts with %r on %r" % arguments
-            )
+            conflicting_options.append((self.option_shorts[option.short], "short"))
+        if option.long in self.option_longs:
+            conflicting_options.append((self.option_longs[option.long], "long"))
         option = option.copy()
         option.setdefault_metavars(name)
+        for conflicting, reason in conflicting_options:
+            if reason == "name" and force:
+                continue
+            elif reason == "short":
+                if resolve_conflicts and option.long is not None:
+                    option.abbreviation = None
+                    continue
+                if force:
+                    self.remove_option(conflicting)
+                    continue
+            elif reason == "long":
+                if resolve_conflicts and option.short is not None:
+                    option.name = None
+                    continue
+                if force:
+                    self.remove_option(conflicting)
+                    continue
+            raise OptionConflict(
+                "given option %r conflicts with the %s of %r" % (
+                    option, reason, conflicting
+                )
+            )
         self.options[name] = option
+
+    def remove_option(self, to_be_removed_option):
+        """
+        Removes the given option.
+
+        Raises a :exc:`ValueError` if the option cannot be found.
+        """
+        name = None
+        for name, option in self.options.items():
+            if option is to_be_removed_option:
+                break
+        if name is not None:
+            del self.options[name]
+        raise ValueError("%r not found" % to_be_removed_option)
 
     def add_command(self, name, command, force=False):
         """

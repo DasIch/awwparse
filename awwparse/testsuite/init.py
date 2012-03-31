@@ -174,6 +174,42 @@ class CommandTestCase(TestCase):
         command.add_option("foo", Option("something", String()), force=True)
         self.assert_equal(command.options["foo"].name, "something")
 
+        command = Command()
+        command.add_option("foo", Option("a", "asd", String()))
+        command.add_option("bar", Option("b", "qwe", String()))
+        command.add_option(
+            "spam",
+            Option("a", "zxc", String()),
+            resolve_conflicts=True
+        )
+        self.assert_equal(command.option_shorts["-a"].name, "asd")
+        self.assert_equal(command.options["spam"].name, "zxc")
+        command.add_option(
+            "eggs",
+            Option("c", "zxc", String()),
+            resolve_conflicts=True
+        )
+        self.assert_is(command.option_shorts["-c"].name, None)
+        self.assert_is(command.option_longs["--zxc"], command.options["spam"])
+
+        with self.assert_raises(OptionConflict):
+            command.add_option(
+                "blubb",
+                Option("a", "asd", String()),
+                resolve_conflicts=True
+            )
+        command.add_option(
+            "blubb",
+            Option("a", "asd", String()),
+            resolve_conflicts=True,
+            force=True
+        )
+        command.add_option(
+            "bla",
+            Option("a", "asd", String()),
+            force=True
+        )
+
     def test_add_command(self):
         command = Command()
         command.add_command("foobar", Command())
