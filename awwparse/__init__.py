@@ -77,12 +77,19 @@ def parse_argument_signature(arguments, _root=True):
 
 
 class Command(object):
+    """
+    Represents a command of a :class:`CLI` or another command.
+    """
     inherited_instance_attributes = frozenset([
         "stdin", "stdout", "stderr", "exit", "width", "section_indent"
     ])
+    #: A mapping of option names to options.
     options = {}
+    #: A mapping of command names to commands.
     commands = {}
+    #: An arguments signature.
     arguments = ()
+    #: A help message explaining this command.
     help = None
 
     def __init__(self):
@@ -97,16 +104,25 @@ class Command(object):
 
     @property
     def option_prefixes(self):
+        """
+        A set of all option name prefixes.
+        """
         return {option.name_prefix for option in self.options.values()}
 
     @property
     def abbreviated_option_prefixes(self):
+        """
+        A set of all abbreviated option name prefixes.
+        """
         return {
             option.abbreviation_prefix for option in self.options.values()
         }
 
     @property
     def option_shorts(self):
+        """
+        A mapping of all abbreviated option argument names to options.
+        """
         return {
             option.short: option for option in self.options.values()
             if option.short is not None
@@ -114,6 +130,9 @@ class Command(object):
 
     @property
     def option_longs(self):
+        """
+        A mapping of all complete option argument names to options.
+        """
         return {
             option.long: option for option in self.options.values()
             if option.long is not None
@@ -121,6 +140,9 @@ class Command(object):
 
     @property
     def defaults(self):
+        """
+        A mapping of option names to option default values.
+        """
         return {
             name: option.default for name, option in self.options.items()
             if option.default is not missing
@@ -143,6 +165,14 @@ class Command(object):
         return u(" ").join(result)
 
     def add_option(self, name, option, force=False):
+        """
+        Adds the `option` with `name` to the command.
+
+        May raise an :exc:`OptionConflict` exception if the argument name,
+        the argument name abbreviation or the given `name` is identical to
+        those of another option. If `force` is ``True`` it will ignore the
+        latter kind of conflict and replace the old option with the given one.
+        """
         arguments = None
         if option.short in self.option_shorts:
             arguments = option, self.option_shorts[option.short], "short"
@@ -159,6 +189,13 @@ class Command(object):
         self.options[name] = option
 
     def add_command(self, name, command, force=False):
+        """
+        Add the `command` with `name` to the command.
+
+        May raise a :exc:`CommandConflict` if `name` is identical to that of
+        another command unless `force` is ``True`` in which case the given
+        `command` overwrites the confliciting one.
+        """
         if not force and name in self.commands:
             raise CommandConflict("given command %r conflicts with %r" % (
                 command, self.commands[name]
@@ -166,13 +203,20 @@ class Command(object):
         command.parent = self
         self.commands[name] = command
 
-    def add_argument(self, type):
+    def add_argument(self, argument):
+        """
+        Adds the given `argument` to the command.
+
+        May raise an :exc:`ArgumentConflict` if last argument takes all
+        remaining command line arguments - in which case the added argument
+        would never be reached.
+        """
         if self.arguments and self.arguments[-1].remaining:
             raise ArgumentConflict(
                 "last argument %r takes all remaining arguments"
                 % self.arguments[-1]
             )
-        self.arguments.append(type)
+        self.arguments.append(argument)
 
     def __getattr__(self, name):
         missing = object()
@@ -359,25 +403,32 @@ class Command(object):
         except CLIError as error:
             if passthrough_errors:
                 raise
-            self.print_error(error.message)
-            self.print_help(arguments)
-            self.exit(error.exit_code)
+            self.handle_error(error, arguments)
             assert False, "exit should have aborted execution"
         return self.main(*args, **kwargs)
 
+    def handle_error(self, error, arguments=None):
+        self.print_error(error)
+        self.print_help(arguments)
+        self.exit(error.exit_code)
+
     def main(self, *args, **kwargs):
         if self.commands:
-            raise CommandMissing("expected a command")
-        raise NotImplementedError(
-            "%s.main(*%r, **%r)" % (
-                self.__class__.__name__,
-                args,
-                kwargs
+            self.handle_error(CommandMissing("expected a command"))
+        else:
+            raise NotImplementedError(
+                "%s.main(*%r, **%r)" % (
+                    self.__class__.__name__,
+                    args,
+                    kwargs
+                )
             )
-        )
 
 
 class Argument(object):
+    """
+    Represents a positional argument to a :class:`CLI` or a :class:`Command`.
+    """
     def __init__(self, type, metavar, default=missing, optional=False,
                  remaining=False, help=None):
         if isinstance(type, Type):
@@ -446,8 +497,19 @@ class Argument(object):
 
 class Option(object):
     """
-    Represents how an application is supposed to do instead of the default
-    behavior.
+    Represents an option of the :class:`CLI` or a :class:`Command` e.g.
+    ``--option``.
+
+    Takes a single character as abbreviated option name or the complete option
+    name or both (in that order) followed by a type signature.
+
+    Other optional parameters are:
+
+    :param abbreviation_prefix: Prefix used for abbreviated option names
+                                (default: ``"-"``).
+    :param name_prefix: Prefix used for option names (default: ``"--"``).
+    :param help: A help message explaining the option in detail
+                 (default: ``None``).
     """
     container_type = Last
 
@@ -501,18 +563,27 @@ class Option(object):
 
     @property
     def short(self):
+        """
+        The abbreviated option name including prefix.
+        """
         if self.abbreviation is None:
             return None
         return self.abbreviation_prefix + self.abbreviation
 
     @property
     def long(self):
+        """
+        The option name including prefix.
+        """
         if self.name is None:
             return None
         return self.name_prefix + self.name
 
     @property
     def default(self):
+        """
+        The default value for this option.
+        """
         return self.parser.default
 
     def setdefault_metavars(self, metavar):
@@ -572,8 +643,11 @@ class Option(object):
 
 class CLI(Command):
     """
-    Represents the command line interface of an application.
+    Represents the command line interface of an application. Inherits from
+    :class:`Command`.
     """
+    #: The number of spaces used for indentation of sections in the help
+    #: message (default: 2).
     section_indent = 2
 
     def __init__(self, application_name=sys.argv[0], usage=None,
@@ -594,6 +668,14 @@ class CLI(Command):
         return self.usage
 
     def run(self, arguments=sys.argv[1:], passthrough_errors=False):
+        """run(self, arguments=sys.argv[1:], passthrough_errors=False)
+
+        Parses the given `arguments` (default: ``sys.argv[1:]`` and invokes
+        :meth:`main()` with the result.
+
+        If `passthrough_errors` (default: ``False``) is ``True``
+        :exc:`CLIError`\s will not be caught.
+        """
         arguments = Arguments(arguments)
         arguments.trace.append(self.application_name)
         return Command.run(

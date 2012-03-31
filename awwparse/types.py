@@ -105,24 +105,36 @@ class ContainerType(object):
 
 
 class Last(ContainerType):
+    """
+    Stores only the last occurance in the namespace.
+    """
     def parse_and_store(self, command, namespace, name, arguments):
         namespace[name] = self.parse(command, arguments)
         return namespace
 
 
 class List(ContainerType):
+    """
+    Stores every occurance in a list.
+    """
     def parse_and_store(self, command, namespace, name, arguments):
         namespace.setdefault(name, []).append(self.parse(command, arguments))
         return namespace
 
 
 class Set(ContainerType):
+    """
+    Stores every occurance in a set.
+    """
     def parse_and_store(self, command, namespace, name, arguments):
         namespace.setdefault(name, set()).add(self.parse(command, arguments))
         return namespace
 
 
 class Adder(ContainerType):
+    """
+    Stores the sum of every occurance.
+    """
     def parse_and_store(self, command, namespace, name, arguments):
         if name in namespace:
             namespace[name] += self.parse(command, arguments)
@@ -185,6 +197,9 @@ class EncodingType(Type):
 
 
 class Bytes(EncodingType):
+    """
+    Represents a binary argument.
+    """
     def encode(self, string, encoding):
         if isinstance(string, six.binary_type):
             return string
@@ -211,6 +226,9 @@ class Bytes(EncodingType):
 
 
 class String(EncodingType):
+    """
+    Represents a string argument.
+    """
     def decode(self, bytes, encoding):
         if isinstance(bytes, six.text_type):
             return bytes
@@ -237,6 +255,9 @@ class String(EncodingType):
 
 
 class NativeString(Type):
+    """
+    Represents a "native" string argument.
+    """
     def parse(self, command, arguments):
         if self.remaining:
             return list(arguments)
@@ -273,27 +294,45 @@ class ConverterBase(Type):
 
 
 class Integer(ConverterBase):
+    """
+    Represents an integer argument.
+    """
     type = int
     error_message = "%r is not an integer"
 
 
 class Float(ConverterBase):
+    """
+    Represents a float argument.
+    """
     type = float
     error_message = "%r is not a float"
 
 
 class Decimal(ConverterBase):
+    """
+    Like :class:`Float` but uses :class:`decimal.Decimal` for higher precision.
+    """
     type = decimal.Decimal
     type_conversion_exception = decimal.InvalidOperation
     error_message = "%r is not a decimal"
 
 
 class Complex(ConverterBase):
+    """
+    Represents a complex number argument.
+    """
     type = complex
     error_message = "%r is not a complex number"
 
 
 class Any(ConverterBase):
+    """
+    Represents an argument of one of the given `types`.
+
+    Raises a :exc:`UserTypeError` with the given `error_message` if no type
+    successfully parses.
+    """
     def __init__(self, types, error_message, **kwargs):
         ConverterBase.__init__(self, **kwargs)
         self.types = types
@@ -325,6 +364,9 @@ class Any(ConverterBase):
 
 
 class Number(Any):
+    """
+    Represents an integer, a float or a complex number.
+    """
     def __init__(self, use_decimal=False, **kwargs):
         Any.__init__(
             self,
@@ -351,6 +393,9 @@ class Number(Any):
 
 
 class Boolean(Type):
+    """
+    Represents a boolean.
+    """
     def __init__(self, default=False, **kwargs):
         Type.__init__(self, default=default, **kwargs)
 
@@ -363,6 +408,10 @@ class Boolean(Type):
 
 
 class Choice(Type):
+    """
+    Represents a choice between `choices` where the choice is something of
+    `type`.
+    """
     def __init__(self, type, choices, metavar=None):
         Type.__init__(self, metavar=metavar)
         self.type = type

@@ -11,8 +11,9 @@ import os
 
 class CLIError(Exception):
     """
-    An exception used internally in case of a fatal error.
+    An exception used in case of a fatal error.
     """
+    #: The exit code which should be used in case of failure.
     exit_code = os.EX_USAGE
 
     @property
