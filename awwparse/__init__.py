@@ -158,6 +158,23 @@ class Command(object):
         cls._populate_from_signature(command, signature)
         return command
 
+    @classmethod
+    def from_method(cls, method):
+        """
+        Like :meth:`from_function` but for methods.
+
+        Note that for instance and class methods you have to pass the class or
+        instance with the `default_args` argument of :meth:`run` to the method.
+        """
+        signature = Signature.from_method(method)
+        command = type(
+            method.__name__,
+            (cls, ),
+            {"main": staticmethod(method)}
+        )()
+        cls._populate_from_signature(command, signature)
+        return command
+
     def __init__(self):
         self.options = self.options.copy()
         self.commands = {}

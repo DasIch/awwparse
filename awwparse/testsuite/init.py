@@ -163,6 +163,20 @@ class CommandTestCase(TestCase):
         self.assert_equal(foo.run(["-a", "2", "-b", "2"]), 4)
         """
 
+    @py3test
+    def test_from_method(self):
+        """
+        class Foo(object):
+            @Command.from_method
+            def spam(self, a: Integer(), b: Integer()):
+                return self.add(a, b)
+
+            def add(self, a, b):
+                return a + b
+        foo = Foo()
+        self.assert_equal(foo.spam.run(["1", "1"], default_args=[foo]), 2)
+        """
+
     def test_option_shorts_and_longs(self):
         command = Command()
         command.add_option("foo", Option("a", String()))
