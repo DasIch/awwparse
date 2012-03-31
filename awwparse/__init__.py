@@ -176,6 +176,9 @@ class Command(object):
         return command
 
     def __init__(self):
+        self.options = {}
+        for name, option in self.__class__.options.items():
+            self.add_option(name, option)
         self.options = self.options.copy()
         self.commands = {}
         for name, command in self.__class__.commands.items():
