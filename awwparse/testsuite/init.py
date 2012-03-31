@@ -177,6 +177,15 @@ class CommandTestCase(TestCase):
         self.assert_equal(foo.spam.run(["1", "1"], default_args=[foo]), 2)
         """
 
+    @py3test
+    def test_main_annotations(self):
+        """
+        class Foo(Command):
+            def main(self, a: Integer(), b: Integer()):
+                return a + b
+        self.assert_equal(Foo().run(["1", "1"]), 2)
+        """
+
     def test_option_shorts_and_longs(self):
         command = Command()
         command.add_option("foo", Option("a", String()))

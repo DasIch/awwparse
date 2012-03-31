@@ -108,11 +108,12 @@ def py3test(function):
     if six.PY3:
         @wraps(function)
         def new(self):
-            six.exec_(
+            code = compile(
                 textwrap.dedent(function.__doc__),
-                function.__globals__,
-                locals()
+                "<%s>" % function.__name__,
+                "exec"
             )
+            six.exec_(code, function.__globals__, locals())
         return new
     else:
         return function

@@ -153,8 +153,12 @@ class Command(object):
         command = type(
             function.__name__,
             (cls, ),
-            {"main": staticmethod(function)}
+            {
+                "__module__": function.__module__,
+                "__doc__": function.__doc__
+            }
         )()
+        command.main = function
         cls._populate_from_signature(command, signature)
         return command
 
@@ -170,9 +174,12 @@ class Command(object):
         command = type(
             method.__name__,
             (cls, ),
-            {"main": staticmethod(method)}
+            {
+                "__module__": method.__module__,
+                "__doc__": method.__doc__,
+                "main": staticmethod(method)
+            }
         )()
-        cls._populate_from_signature(command, signature)
         return command
 
     def __init__(self):
@@ -187,6 +194,10 @@ class Command(object):
             force_list(self.__class__.arguments)
         )
         self.parent = None
+        signature = Signature.from_method(self.main)
+        if signature.annotations:
+            self._populate_from_signature(self, signature)
+
 
     @property
     def option_prefixes(self):
