@@ -10,13 +10,10 @@ import locale
 import decimal
 from operator import attrgetter
 from itertools import takewhile
-try:
-    reduce
-except NameError:
-    from functools import reduce
 
 import six
 from six import u
+from six.moves import reduce
 
 from awwparse.utils import missing, force_list
 from awwparse.exceptions import (
