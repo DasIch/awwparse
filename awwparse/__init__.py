@@ -408,6 +408,10 @@ class Command(object):
         return self.main(*args, **kwargs)
 
     def handle_error(self, error, arguments=None):
+        try:
+            self.stderr
+        except AttributeError:
+            raise error
         self.print_error(error)
         self.print_help(arguments)
         self.exit(error.exit_code)
