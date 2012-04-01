@@ -7,7 +7,6 @@
     :license: BSD, see LICENSE.rst for details
 """
 import re
-import sys
 try:
     import unittest2 as unittest
 except ImportError:
@@ -17,7 +16,6 @@ from functools import wraps
 from itertools import chain
 
 import six
-from six import exec_
 from six.moves import map
 
 from awwparse import Command
@@ -72,7 +70,7 @@ def suite():
 
 def find_all_tests(s):
     if isinstance(s, unittest.TestCase):
-        yield s, "%s.%s.%s" % (
+        yield s, "{0}.{0}.{0}".format(
             s.__class__.__module__,
             s.__class__.__name__,
             s._testMethodName
@@ -113,7 +111,7 @@ def py3test(function):
         def new(self):
             code = compile(
                 textwrap.dedent(function.__doc__),
-                "<%s>" % function.__name__,
+                "<{0}>".format(function.__name__),
                 "exec"
             )
             six.exec_(code, function.__globals__, locals())

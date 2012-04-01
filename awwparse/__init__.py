@@ -60,7 +60,7 @@ class Arguments(object):
         self._remaining.append(self.trace.pop())
 
     def __repr__(self):
-        return "<%s(%r) %r>" % (
+        return "<{0}({1!r}) {2!r}>".format(
             self.__class__.__name__,
             self._arguments,
             self.trace
@@ -101,7 +101,7 @@ class Command(object):
             try:
                 return signature.annotations[name]
             except KeyError:
-                raise ValueError("missing annotation for: %s" % name)
+                raise ValueError("missing annotation for: {0}".format(name))
         for name in signature.positional_arguments:
             annotation = lookup_annotation(name)
             if isinstance(annotation, (Type, ContainerType)):
@@ -109,7 +109,9 @@ class Command(object):
             elif isinstance(annotation, Argument):
                 command.add_argument(annotation)
             else:
-                raise ValueError("unexpected annotation: %r" % annotation)
+                raise ValueError(
+                    "unexpected annotation: {0!r}".format(annotation)
+                )
         if signature.arbitary_positional_arguments is not None:
             name = signature.arbitary_positional_arguments
             annotation = lookup_annotation(name)
@@ -118,7 +120,9 @@ class Command(object):
             elif isinstance(annotation, Argument):
                 command.add_argument(annotation)
             else:
-                raise ValueError("unexpected annotation: %r" % annotation)
+                raise ValueError(
+                    "unexpected annotation: {0!r}".format(annotation)
+                )
         for name in signature.keyword_arguments:
             annotation = lookup_annotation(name)
             if isinstance(annotation, (Type, ContainerType)):
@@ -130,7 +134,9 @@ class Command(object):
             elif isinstance(annotation, Option):
                 command.add_option(name, annotation)
             else:
-                raise ValueError("unexcepted annotation: %r" % annotation)
+                raise ValueError(
+                    "unexcepted annotation: {0!r}".format(annotation)
+                )
         command.help = signature.documentation
         return command
 
@@ -259,7 +265,7 @@ class Command(object):
         result = [] if arguments is None else arguments.trace[:-1]
         if self.options:
             result.extend(
-                u("[%s]") % option.get_usage()
+                u("[{0}]").format(option.get_usage())
                 for option in sorted(
                     self.options.values(),
                     key=lambda option: option.short is None
@@ -310,7 +316,7 @@ class Command(object):
                     self.remove_option(conflicting)
                     continue
             raise OptionConflict(
-                u("given option %r conflicts with the %s of %r") % (
+                u("given option {0!r} conflicts with the {1} of {2!r}").format(
                     option, reason, conflicting
                 )
             )
@@ -329,7 +335,7 @@ class Command(object):
         if name is not None:
             del self.options[name]
         else:
-            raise ValueError("%r not found" % to_be_removed_option)
+            raise ValueError("{0!r} not found".format(to_be_removed_option))
 
     def add_command(self, name, command, force=False):
         """
@@ -340,9 +346,11 @@ class Command(object):
         `command` overwrites the confliciting one.
         """
         if not force and name in self.commands:
-            raise CommandConflict(u("given command %r conflicts with %r") % (
-                command, self.commands[name]
-            ))
+            raise CommandConflict(
+                u("given command {0!r} conflicts with {1!r}").format(
+                    command, self.commands[name]
+                )
+            )
         command.parent = self
         self.commands[name] = command
 
@@ -356,8 +364,9 @@ class Command(object):
         """
         if self.arguments and self.arguments[-1].remaining:
             raise ArgumentConflict(
-                u("last argument %r takes all remaining arguments")
-                % self.arguments[-1]
+                u("last argument {0} takes all remaining arguments").format(
+                    self.arguments[-1]
+                )
             )
         self.arguments.append(argument)
 
@@ -368,7 +377,9 @@ class Command(object):
             if attribute is not missing:
                 return attribute
         raise AttributeError(
-            "%r object has no attribute %r" % (self.__class__.__name__, name)
+            "{0!r} object has no attribute {1!r}".format(
+                self.__class__.__name__, name
+            )
         )
 
     def copy(self):
@@ -392,7 +403,7 @@ class Command(object):
 
     def _print_message(self, message, prefix=None, stream=None):
         if prefix is not None:
-            message = u("%s%s") % (prefix, message)
+            message = u("{0}{1}").format(prefix, message)
         if stream is None:
             stream = self.stdout
         indent = u(" ") * len(prefix) if prefix else u("")
@@ -457,12 +468,13 @@ class Command(object):
                 except IndexError:
                     first_line = u("")
                 output.append(
-                    (u("%s%s") % (left.ljust(left_column_length), first_line))
+                    u("{0}{1}")
+                    .format(left.ljust(left_column_length), first_line)
                     .strip()
                 )
             output.extend(wrapped)
         self.stdout.write(u("\n").join(
-            u("%s%s") % (u(" ") * self.section_indent, line)
+            u("{0}{1}").format(u(" ") * self.section_indent, line)
             for line in output
         ) + u("\n"))
 
@@ -500,7 +512,7 @@ class Command(object):
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
                     return name, option, modified_argument
-        raise UnexpectedArgument(u("%r is unexpected") % argument)
+        raise UnexpectedArgument(u("{0!r} is unexpected").format(argument))
 
     def run(self, arguments, default_args=None, default_kwargs=None,
             passthrough_errors=False):
@@ -541,7 +553,7 @@ class Command(object):
             else:
                 if not positional.optional:
                     raise PositionalArgumentMissing(
-                        u("expected %s") % positional.metavar
+                        u("expected {option.metavar}").format(option=positional)
                     )
         except CLIError as error:
             if passthrough_errors:
@@ -564,7 +576,7 @@ class Command(object):
             self.handle_error(CommandMissing(u("expected a command")))
         else:
             raise NotImplementedError(
-                "%s.main(*%r, **%r)" % (
+                "{0}.main(*{1!r}, **{2!r})".format(
                     self.__class__.__name__,
                     args,
                     kwargs
@@ -625,9 +637,9 @@ class Argument(object):
     @property
     def usage(self):
         if self.remaining:
-            return u("[%s ...]") % self.metavar
+            return u("[{0} ...]").format(self.metavar)
         elif self.optional:
-            return u("[%s]") % self.metavar
+            return u("[{0}]").format(self.metavar)
         return self.metavar
 
     def parse(self, command, result, arguments):
@@ -639,7 +651,7 @@ class Argument(object):
         return result
 
     def __repr__(self):
-        return "%s(%r, %r, help=%r)" % (
+        return "{0}({1!r}, {2!r}, help={3!r})".format(
             self.__class__.__name__,
             self.type,
             self.metavar,
@@ -684,7 +696,7 @@ class Option(object):
         if len(signature) < 2:
             raise TypeError(
                 "expected at least 2 positional arguments"
-                ", got %d" % len(signature)
+                ", got {0}".format(len(signature))
             )
 
         name = abbreviation = None
@@ -700,8 +712,9 @@ class Option(object):
             types = signature[1:]
         else:
             raise TypeError(
-                "expected name or abbreviation as first argument, got %r"
-                % signature[0]
+                "expected name or abbreviation as first argument, got {0!r}".format(
+                    signature[0]
+                )
             )
         if len(types) == 1 and isinstance(types[0], ContainerType):
             parser = types[0]
@@ -709,7 +722,7 @@ class Option(object):
             parser = self.container_type(*types)
             if parser.types[0].optional:
                 raise ValueError(
-                    "first type must not be optional: %r" % types[0]
+                    "first type must not be optional: {0!r}".format(types[0])
                 )
         return name, abbreviation, parser
 
@@ -759,16 +772,13 @@ class Option(object):
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
         if using == "both" and self.short and self.long:
-            caller = u("%s, %s") % (self.short, self.long)
+            caller = u("{0}, {1}").format(self.short, self.long)
         elif (using == "short" and self.short or
               using in set(["long", "both"]) and not self.long):
             caller = self.short
         else:
             caller = self.long
-        return u("%s %s") % (
-            caller,
-            self.parser.usage
-        )
+        return u("{0} {1}").format(caller, self.parser.usage)
 
     def matches(self, argument):
         if argument == self.long:
@@ -783,7 +793,7 @@ class Option(object):
         return self.parser.parse_and_store(command, namespace, name, arguments)
 
     def __repr__(self):
-        return "%s(%s, %r, abbreviation_prefix=%r, name_prefix=%r, help=%r)" % (
+        return "{0}({1}, {2!r}, abbreviation_prefix={3!r}, name_prefix={4!r}, help={5!r})".format(
             self.__class__.__name__,
             ", ".join(map(repr, filter(None, [self.abbreviation, self.name]))),
             self.parser,
@@ -816,7 +826,7 @@ class CLI(Command):
 
     def get_usage(self, arguments=None):
         if self.usage is None:
-            return u("%s %s") % (self.application_name, Command.get_usage(self))
+            return u("{0} {1}").format(self.application_name, Command.get_usage(self))
         return self.usage
 
     def run(self, arguments=sys.argv[1:], passthrough_errors=False):

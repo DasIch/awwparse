@@ -67,7 +67,7 @@ class ContainerType(object):
                 nodes = u(" ").join(render(node, _root=False) for node in tree)
                 if _root:
                     return nodes
-                return u("[%s]") % nodes
+                return u("[{0}]").format(nodes)
         return render(reduce(step, self.types, ([], ) * 2)[0])
 
     def setdefault_metavars(self, metavar):
@@ -95,7 +95,7 @@ class ContainerType(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        return "%s(%s)" % (
+        return "{0}({1})".format(
             self.__class__.__name__,
             ", ".join(map(repr, self.types))
         )
@@ -163,7 +163,7 @@ class Type(object):
     @property
     def usage(self):
         if self.remaining:
-            return u("[%s ...]") % self.metavar
+            return u("[{0} ...]").format(self.metavar)
         return self.metavar
 
     def parse(self, command, arguments):
@@ -180,7 +180,7 @@ class Type(object):
             return argument
 
     def __repr__(self):
-        return "%s(metavar=%r, default=%r, optional=%r, remaining=%r)" % (
+        return "{0}(metavar={1!r}, default={2!r}, optional={3!r}, remaining={4!r})".format(
             self.__class__.__name__, self.metavar, self.default, self.optional,
             self.remaining
         )
@@ -204,7 +204,7 @@ class Bytes(EncodingType):
             return string.encode(encoding, self.error_method)
         except UnicodeEncodeError:
             raise UserTypeError(
-                u("failed to decode %r with %r") % (string, encoding)
+                u("failed to decode {0!r} with {1!r}").format(string, encoding)
             )
 
     def parse(self, command, arguments):
@@ -233,7 +233,7 @@ class String(EncodingType):
             return bytes.decode(encoding, self.error_method)
         except UnicodeDecodeError:
             raise UserTypeError(
-                u("failed to decode %r with %r") % (bytes, encoding)
+                u("failed to decode {0!r} with {1!r}").format(bytes, encoding)
             )
 
     def parse(self, command, arguments):
@@ -351,10 +351,10 @@ class Any(ConverterBase):
                 return type.convert(argument)
             except UserTypeError:
                 pass
-        raise UserTypeError(self.error_message % argument)
+        raise UserTypeError(self.error_message.format(argument))
 
     def __repr__(self):
-        return "%s(%r, %r, metavar=%r, default=%r, optional=%r, remaining=%r" % (
+        return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}".format(
             self.__class__.__name__, self.types, self.error_message,
             self.metavar, self.default, self.optional, self.remaining
         )
@@ -368,7 +368,7 @@ class Number(Any):
         Any.__init__(
             self,
             [Integer(), (Decimal if use_decimal else Float)(), Complex()],
-            u("%r is not a number"),
+            u("{0!r} is not a number"),
             **kwargs
         )
         self.use_decimal = use_decimal
@@ -383,7 +383,7 @@ class Number(Any):
         )
 
     def __repr__(self):
-        return "%s(use_decimal=%r, metavar=%r, default=%r, optional=%r, remaining=%r)" % (
+        return "{0}(use_decimal={1!r}, metavar={2!r}, default={3!r}, optional={4!r}, remaining={5!r})".format(
             self.__class__.__name__, self.use_decimal, self.metavar,
             self.default, self.optional, self.remaining
         )
@@ -426,7 +426,7 @@ class Choice(Type):
         for choice in force_list(parsed):
             if choice not in self.choices:
                 raise UserTypeError(
-                    u("%r not in %s") % (
+                    u("{0!r} not in {1!r}").format(
                         choice,
                         ", ".join(map(repr, self.choices))
                     )
@@ -434,6 +434,6 @@ class Choice(Type):
         return parsed
 
     def __repr__(self):
-        return "%s(%r, %r, metavar=%r)" % (
+        return "{0}({1!r}, {2!r}, metavar={3!r})".format(
             self.__class__.__name__, self.type, self.choices, self.metavar
         )
