@@ -214,46 +214,46 @@ class Command(object):
         """
         A set of all option name prefixes.
         """
-        return {option.name_prefix for option in self.options.values()}
+        return set(option.name_prefix for option in self.options.values())
 
     @property
     def abbreviated_option_prefixes(self):
         """
         A set of all abbreviated option name prefixes.
         """
-        return {
+        return set(
             option.abbreviation_prefix for option in self.options.values()
-        }
+        )
 
     @property
     def option_shorts(self):
         """
         A mapping of all abbreviated option argument names to options.
         """
-        return {
-            option.short: option for option in self.options.values()
+        return dict(
+            (option.short, option) for option in self.options.values()
             if option.short is not None
-        }
+        )
 
     @property
     def option_longs(self):
         """
         A mapping of all complete option argument names to options.
         """
-        return {
-            option.long: option for option in self.options.values()
+        return dict(
+            (option.long, option) for option in self.options.values()
             if option.long is not None
-        }
+        )
 
     @property
     def defaults(self):
         """
         A mapping of option names to option default values.
         """
-        return {
-            name: option.default for name, option in self.options.items()
+        return dict(
+            (name, option.default) for name, option in self.options.items()
             if option.default is not missing
-        }
+        )
 
     def get_usage(self, arguments=None):
         result = [] if arguments is None else arguments.trace[:-1]
@@ -754,14 +754,14 @@ class Option(object):
         return option
 
     def get_usage(self, using="short"):
-        if using not in {"short", "long", "both"}:
+        if using not in set(["short", "long", "both"]):
             raise ValueError(
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
         if using == "both" and self.short and self.long:
             caller = u("%s, %s") % (self.short, self.long)
         elif (using == "short" and self.short or
-              using in {"long", "both"} and not self.long):
+              using in set(["long", "both"]) and not self.long):
             caller = self.short
         else:
             caller = self.long

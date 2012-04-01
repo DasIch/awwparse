@@ -95,7 +95,7 @@ class SetTestCase(TestCase):
         command.add_option("foo", Option("a", Set(String())))
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": {u("foo"), u("bar")}}
+            {"foo": set([u("foo"), u("bar")])}
         )
 
 
@@ -227,7 +227,13 @@ class FloatingTestCaseMixin(object):
         with self.assert_raises(UserTypeError):
             floating.convert("1j")
 
-    _parse_test = (
+
+class FloatTestCase(FloatingTestCaseMixin, TestCase):
+    type = Float
+    floating_type = float
+
+    test_parse = make_parse_test(
+        Float,
         [(["1.0"], 1.0)],
         [(["1.0", "2.0", "3.0"], [1.0, 2.0, 3.0])],
         [
@@ -237,18 +243,22 @@ class FloatingTestCaseMixin(object):
     )
 
 
-class FloatTestCase(FloatingTestCaseMixin, TestCase):
-    type = Float
-    floating_type = float
-
-    test_parse = make_parse_test(Float, *FloatingTestCaseMixin._parse_test)
-
-
 class DecimalTestCase(FloatingTestCaseMixin, TestCase):
     type = Decimal
     floating_type = decimal.Decimal
 
-    test_parse = make_parse_test(Decimal, *FloatingTestCaseMixin._parse_test)
+    test_parse = make_parse_test(
+        Decimal,
+        [(["1.0"], decimal.Decimal("1.0"))],
+        [(
+            ["1.0", "2.0", "3.0"],
+            [decimal.Decimal("1.0"), decimal.Decimal("2.0"), decimal.Decimal("3.0")]
+        )],
+        [
+            (["1.0"], [decimal.Decimal("1.0")]),
+            (["1.0", "2.0"], [decimal.Decimal("1.0"), decimal.Decimal("2.0")])
+        ]
+    )
 
 
 class ComplexTestCase(TestCase):

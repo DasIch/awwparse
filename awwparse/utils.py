@@ -37,7 +37,7 @@ def set_attributes_from_kwargs(object, kwargs, defaults):
     """
     set_attributes(
         object,
-        {key: kwargs.pop(key, value) for key, value in defaults.items()}
+        dict((key, kwargs.pop(key, value)) for key, value in defaults.items())
     )
     if kwargs:
         raise TypeError(

@@ -8,7 +8,10 @@
 """
 import re
 import sys
-import unittest
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 import textwrap
 from functools import wraps
 from itertools import chain
