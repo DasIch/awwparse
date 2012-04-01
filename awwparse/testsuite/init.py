@@ -186,6 +186,20 @@ class CommandTestCase(TestCase):
         self.assert_equal(Foo().run(["1", "1"]), 2)
         """
 
+    def test_declarative(self):
+        results = []
+        class Foo(Command):
+            arguments = Argument(Integer(), "a")
+
+            def main(self, a):
+                results.append(a)
+
+        class Bar(Command):
+            foo = Foo()
+
+        Bar().run(["foo", "1"])
+        self.assert_equal(results, [1])
+
     def test_option_shorts_and_longs(self):
         command = Command()
         command.add_option("foo", Option("a", String()))

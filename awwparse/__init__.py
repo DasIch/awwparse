@@ -6,8 +6,11 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+from __future__ import absolute_import
 import sys
 import textwrap
+from types import MethodType
+from functools import partial
 from collections import deque
 
 from six import u
@@ -194,9 +197,17 @@ class Command(object):
             force_list(self.__class__.arguments)
         )
         self.parent = None
+
         signature = Signature.from_method(self.main)
         if signature.annotations:
             self._populate_from_signature(self, signature)
+
+        for name in dir(self):
+            attribute = getattr(self, name)
+            if isinstance(attribute, Command):
+                if not isinstance(attribute.main, MethodType):
+                    attribute.main = partial(attribute.main, self)
+                self.add_command(name, attribute)
 
     @property
     def option_prefixes(self):
