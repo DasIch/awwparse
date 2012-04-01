@@ -204,7 +204,7 @@ class Bytes(EncodingType):
             return string.encode(encoding, self.error_method)
         except UnicodeEncodeError:
             raise UserTypeError(
-                "failed to decode %r with %r" % (string, encoding)
+                u("failed to decode %r with %r") % (string, encoding)
             )
 
     def parse(self, command, arguments):
@@ -233,7 +233,7 @@ class String(EncodingType):
             return bytes.decode(encoding, self.error_method)
         except UnicodeDecodeError:
             raise UserTypeError(
-                "failed to decode %r with %r" % (bytes, encoding)
+                u("failed to decode %r with %r") % (bytes, encoding)
             )
 
     def parse(self, command, arguments):
@@ -269,7 +269,7 @@ class NativeString(Type):
 class ConverterBase(Type):
     type = None
     type_conversion_exception = ValueError
-    error_message = ""
+    error_message = u("")
 
     def convert(self, argument):
         try:
@@ -295,7 +295,7 @@ class Integer(ConverterBase):
     Represents an integer argument.
     """
     type = int
-    error_message = "%r is not an integer"
+    error_message = u("%r is not an integer")
 
 
 class Float(ConverterBase):
@@ -303,7 +303,7 @@ class Float(ConverterBase):
     Represents a float argument.
     """
     type = float
-    error_message = "%r is not a float"
+    error_message = u("%r is not a float")
 
 
 class Decimal(ConverterBase):
@@ -312,7 +312,7 @@ class Decimal(ConverterBase):
     """
     type = decimal.Decimal
     type_conversion_exception = decimal.InvalidOperation
-    error_message = "%r is not a decimal"
+    error_message = u("%r is not a decimal")
 
 
 class Complex(ConverterBase):
@@ -320,7 +320,7 @@ class Complex(ConverterBase):
     Represents a complex number argument.
     """
     type = complex
-    error_message = "%r is not a complex number"
+    error_message = u("%r is not a complex number")
 
 
 class Any(ConverterBase):
@@ -368,7 +368,7 @@ class Number(Any):
         Any.__init__(
             self,
             [Integer(), (Decimal if use_decimal else Float)(), Complex()],
-            "%r is not a number",
+            u("%r is not a number"),
             **kwargs
         )
         self.use_decimal = use_decimal
@@ -426,7 +426,7 @@ class Choice(Type):
         for choice in force_list(parsed):
             if choice not in self.choices:
                 raise UserTypeError(
-                    "%r not in %s" % (
+                    u("%r not in %s") % (
                         choice,
                         ", ".join(map(repr, self.choices))
                     )

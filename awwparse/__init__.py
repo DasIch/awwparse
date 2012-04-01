@@ -310,7 +310,7 @@ class Command(object):
                     self.remove_option(conflicting)
                     continue
             raise OptionConflict(
-                "given option %r conflicts with the %s of %r" % (
+                u("given option %r conflicts with the %s of %r") % (
                     option, reason, conflicting
                 )
             )
@@ -340,7 +340,7 @@ class Command(object):
         `command` overwrites the confliciting one.
         """
         if not force and name in self.commands:
-            raise CommandConflict("given command %r conflicts with %r" % (
+            raise CommandConflict(u("given command %r conflicts with %r") % (
                 command, self.commands[name]
             ))
         command.parent = self
@@ -356,7 +356,7 @@ class Command(object):
         """
         if self.arguments and self.arguments[-1].remaining:
             raise ArgumentConflict(
-                "last argument %r takes all remaining arguments"
+                u("last argument %r takes all remaining arguments")
                 % self.arguments[-1]
             )
         self.arguments.append(argument)
@@ -500,7 +500,7 @@ class Command(object):
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
                     return name, option, modified_argument
-        raise UnexpectedArgument("%r is unexpected" % argument)
+        raise UnexpectedArgument(u("%r is unexpected") % argument)
 
     def run(self, arguments, default_args=None, default_kwargs=None,
             passthrough_errors=False):
@@ -541,7 +541,7 @@ class Command(object):
             else:
                 if not positional.optional:
                     raise PositionalArgumentMissing(
-                        "expected %s" % positional.metavar
+                        u("expected %s") % positional.metavar
                     )
         except CLIError as error:
             if passthrough_errors:
@@ -561,7 +561,7 @@ class Command(object):
 
     def main(self, *args, **kwargs):
         if self.commands:
-            self.handle_error(CommandMissing("expected a command"))
+            self.handle_error(CommandMissing(u("expected a command")))
         else:
             raise NotImplementedError(
                 "%s.main(*%r, **%r)" % (
