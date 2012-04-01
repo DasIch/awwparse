@@ -179,7 +179,6 @@ class Command(object):
         Note that for instance and class methods you have to pass the class or
         instance with the `default_args` argument of :meth:`run` to the method.
         """
-        signature = Signature.from_method(method)
         command = type(
             method.__name__,
             (cls, ),
