@@ -191,7 +191,7 @@ class Command(object):
         return command
 
     def __init__(self):
-        self.options = {}
+        self.options = {"__awwparse_help": HelpOption()}
         for name, option in self.__class__.options.items():
             self.add_option(name, option)
         self.options = self.options.copy()
@@ -800,6 +800,33 @@ class Option(object):
             self.name_prefix,
             self.help
         )
+
+
+class HelpOption(Option):
+    def __init__(self):
+        Option.__init__(
+            self,
+            "h",
+            "help",
+            NativeString(remaining=True),
+            help=u("Show this message")
+        )
+
+    def get_usage(self, using="short"):
+        if using not in set(["short", "long", "both"]):
+            raise ValueError(
+                "using has to be 'short', 'long' or 'both'; not {0!r}".format(using)
+            )
+        if using == "short":
+            return self.short
+        elif using == "long":
+            return self.long
+        else:
+            return u("{0}, {1}").format(self.short, self.long)
+
+    def parse(self, command, namespace, name, arguments):
+        command.print_help(arguments)
+        command.exit()
 
 
 class CLI(Command):

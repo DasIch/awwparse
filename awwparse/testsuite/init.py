@@ -210,13 +210,13 @@ class CommandTestCase(TestCase):
     def test_get_usage(self):
         command = Command()
         command.add_option("foo", Option("o", String()))
-        self.assert_equal(command.get_usage(), u("[-o foo]"))
+        self.assert_equal(command.get_usage(), u("[-o foo] [-h]"))
 
         command.add_command("bar", Command())
-        self.assert_equal(command.get_usage(), u("[-o foo] {bar}"))
+        self.assert_equal(command.get_usage(), u("[-o foo] [-h] {bar}"))
 
         command.add_argument(Argument(String(), "baz"))
-        self.assert_equal(command.get_usage(), u("[-o foo] {bar} baz"))
+        self.assert_equal(command.get_usage(), u("[-o foo] [-h] {bar} baz"))
 
     def test_add_option(self):
         command = Command()
@@ -418,7 +418,7 @@ class CLITestCase(TestCase):
     def test_get_usage(self):
         cli = CLI(application_name=u("spam"))
         cli.add_argument(Argument(String(), u("foo")))
-        self.assert_equal(cli.get_usage(), u("spam foo"))
+        self.assert_equal(cli.get_usage(), u("spam [-h] foo"))
 
         cli.usage = u("blubb")
         self.assert_equal(cli.get_usage(), u("blubb"))
@@ -441,40 +441,45 @@ class CLITestCase(TestCase):
 
     def test_print_help(self):
         stringio = StringIO()
-        cli = CLI(application_name=u("app"), stdout=stringio)
+        cli = CLI(application_name=u("app"), stdout=stringio, width=40)
         cli.add_argument(Argument(String(), u("foo")))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), u(
-            "Usage: app foo\n"
+            "Usage: app [-h] foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
+            "\n"
+            "Options\n"
+            "  -h, --help   Show this message\n"
         ))
 
         cli.stdout = stringio = StringIO()
         cli.add_option("bar", Option("a", String()))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), u(
-            "Usage: app [-a bar] foo\n"
+            "Usage: app [-a bar] [-h] foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
             "\n"
             "Options\n"
             "  -a bar\n"
+            "  -h, --help   Show this message\n"
         ))
 
         cli.stdout = stringio = StringIO()
         cli.add_command("baz", Command())
         cli.print_help()
         self.assert_equal(stringio.getvalue() , u(
-            "Usage: app [-a bar] {baz} foo\n"
+            "Usage: app [-a bar] [-h] {baz} foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
             "\n"
             "Options\n"
             "  -a bar\n"
+            "  -h, --help   Show this message\n"
             "\n"
             "Commands\n"
             "  baz\n"
@@ -488,8 +493,11 @@ class CLITestCase(TestCase):
         def exit(code):
             assert code != 1
         cli = TestCLI(
-            application_name=u("app"), stdout=stringio, stderr=stringio,
-            exit=exit
+            application_name=u("app"),
+            stdout=stringio,
+            stderr=stringio,
+            exit=exit,
+            width=40
         )
         cli.add_option("foo", Option("o", Integer()))
         with self.assert_raises(AssertionError) as error:
@@ -501,10 +509,11 @@ class CLITestCase(TestCase):
             stringio.getvalue(),
             u(
                 "Error: 'foo' is not an integer\n"
-                "Usage: app [-o foo]\n"
+                "Usage: app [-o foo] [-h]\n"
                 "\n"
                 "Options\n"
                 "  -o foo\n"
+                "  -h, --help   Show this message\n"
             )
         )
         with self.assert_raises(UserTypeError):
@@ -512,8 +521,11 @@ class CLITestCase(TestCase):
 
         stringio = StringIO()
         cli = TestCLI(
-            application_name=u("app"), stdout=stringio, stderr=stringio,
-            exit=exit
+            application_name=u("app"),
+            stdout=stringio,
+            stderr=stringio,
+            exit=exit,
+            width=40
         )
         command = Command()
         command.add_option("foo", Option("o", String()))
@@ -528,10 +540,28 @@ class CLITestCase(TestCase):
             stringio.getvalue(),
             u(
                 "Error: foo\n"
-                "Usage: app spam [-o foo]\n"
+                "Usage: app spam [-o foo] [-h]\n"
                 "\n"
                 "Options\n"
                 "  -o foo\n"
+                "  -h, --help   Show this message\n"
+            )
+        )
+
+    def test_help_option(self):
+        stringio = StringIO()
+        cli = CLI(application_name=u("app"), stdout=stringio, width=40)
+        try:
+            cli.run(["-h"])
+        except SystemExit:
+            pass
+        self.assert_equal(
+            stringio.getvalue(),
+            u(
+                "Usage: app [-h]\n"
+                "\n"
+                "Options\n"
+                "  -h, --help   Show this message\n"
             )
         )
 
