@@ -92,7 +92,7 @@ class OptionTestCase(TestCase):
         option = Option("a", "abc", String(metavar=u("foo")))
         self.assert_equal(option.get_usage(), "-a foo")
         self.assert_equal(option.get_usage(using="long"), u("--abc foo"))
-        self.assert_equal(option.get_usage(using="both"), u("-a, --abc foo"))
+        self.assert_equal(option.get_usage(using="both"), u("-a foo, --abc foo"))
 
     def test_abbreviation_prefix(self):
         command = make_command({"option": Option("o", String())})

@@ -771,13 +771,17 @@ class Option(object):
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
         if using == "both" and self.short and self.long:
-            caller = u("{0}, {1}").format(self.short, self.long)
-        elif (using == "short" and self.short or
-              using in set(["long", "both"]) and not self.long):
-            caller = self.short
-        else:
-            caller = self.long
-        return u("{0} {1}").format(caller, self.parser.usage)
+            return u("{short} {usage}, {long} {usage}").format(
+                short=self.short,
+                long=self.long,
+                usage=self.parser.usage
+            ).strip()
+        return u("{0} {1}").format(
+            self.short if using == "short" and self.short or
+                          using in set(["long", "both"]) and not self.long
+            else self.long,
+            self.parser.usage
+        ).strip()
 
     def matches(self, argument):
         if argument == self.long:
