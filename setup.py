@@ -16,5 +16,18 @@ setup(
     ],
     zip_safe=False,
     platforms="any",
-    install_requires=["six>=1.1.0"]
+    install_requires=["six>=1.1.0"],
+    classifiers=[
+        "Environment :: Console",
+        "Topic :: Software Development :: User Interfaces",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.0",
+        "Programming Language :: Python :: 3.1",
+        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy"
+    ]
 )
