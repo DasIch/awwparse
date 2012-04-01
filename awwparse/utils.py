@@ -10,7 +10,6 @@ from __future__ import absolute_import
 import os
 import math
 import inspect
-from types import FunctionType, MethodType
 try:
     from itertools import zip_longest
 except ImportError:
