@@ -275,7 +275,7 @@ class ConverterBase(Type):
         try:
             return self.type(argument)
         except self.type_conversion_exception:
-            raise UserTypeError(self.error_message % argument)
+            raise UserTypeError(self.error_message.format(argument=argument))
 
     def parse(self, command, arguments):
         if self.remaining:
@@ -295,7 +295,7 @@ class Integer(ConverterBase):
     Represents an integer argument.
     """
     type = int
-    error_message = u("%r is not an integer")
+    error_message = u("{argument!r} is not an integer")
 
 
 class Float(ConverterBase):
@@ -303,7 +303,7 @@ class Float(ConverterBase):
     Represents a float argument.
     """
     type = float
-    error_message = u("%r is not a float")
+    error_message = u("{argument!r} is not a float")
 
 
 class Decimal(ConverterBase):
@@ -312,7 +312,7 @@ class Decimal(ConverterBase):
     """
     type = decimal.Decimal
     type_conversion_exception = decimal.InvalidOperation
-    error_message = u("%r is not a decimal")
+    error_message = u("{argument!r} is not a decimal")
 
 
 class Complex(ConverterBase):
@@ -320,7 +320,7 @@ class Complex(ConverterBase):
     Represents a complex number argument.
     """
     type = complex
-    error_message = u("%r is not a complex number")
+    error_message = u("{argument!r} is not a complex number")
 
 
 class Any(ConverterBase):
