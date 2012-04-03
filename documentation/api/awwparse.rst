@@ -12,9 +12,5 @@
    :members:
 
 
-.. autoclass:: Argument
-   :members:
-
-
 .. autoclass:: Command
    :members:

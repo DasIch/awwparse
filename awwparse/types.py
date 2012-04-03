@@ -142,11 +142,12 @@ class Adder(ContainerType):
 
 class Type(object):
     def __init__(self, metavar=None, default=missing, optional=False,
-                 remaining=False):
+                 remaining=False, help=None):
         self.metavar = metavar
         self.default = default
         self.optional = optional
         self.remaining = remaining
+        self.help = help
 
     def setdefault_metavar(self, metavar):
         if self.metavar is None:
@@ -157,7 +158,8 @@ class Type(object):
             metavar=self.metavar,
             default=self.default,
             optional=self.optional,
-            remaining=self.remaining
+            remaining=self.remaining,
+            help=self.help
         )
 
     @property
@@ -168,6 +170,14 @@ class Type(object):
 
     def parse(self, command, arguments):
         raise NotImplementedError()
+
+    def parse_as_positional(self, command, result, arguments):
+        parsed = self.parse(command, arguments)
+        if self.remaining:
+            result.extend(parsed)
+        else:
+            result.append(parsed)
+        return result
 
     def get_next_argument(self, command, arguments):
         try:
@@ -180,9 +190,9 @@ class Type(object):
             return argument
 
     def __repr__(self):
-        return "{0}(metavar={1!r}, default={2!r}, optional={3!r}, remaining={4!r})".format(
+        return "{0}(metavar={1!r}, default={2!r}, optional={3!r}, remaining={4!r}, help={5!r})".format(
             self.__class__.__name__, self.metavar, self.default, self.optional,
-            self.remaining
+            self.remaining, self.help
         )
 
 
@@ -342,7 +352,8 @@ class Any(ConverterBase):
             metavar=self.metavar,
             default=self.default,
             optional=self.optional,
-            remaining=self.remaining
+            remaining=self.remaining,
+            help=self.help
         )
 
     def convert(self, argument):
@@ -354,9 +365,10 @@ class Any(ConverterBase):
         raise UserTypeError(self.error_message.format(argument))
 
     def __repr__(self):
-        return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}".format(
+        return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}, help={7!r})".format(
             self.__class__.__name__, self.types, self.error_message,
-            self.metavar, self.default, self.optional, self.remaining
+            self.metavar, self.default, self.optional, self.remaining,
+            self.help
         )
 
 
@@ -379,13 +391,14 @@ class Number(Any):
             metavar=self.metavar,
             default=self.default,
             optional=self.optional,
-            remaining=self.remaining
+            remaining=self.remaining,
+            help=self.help
         )
 
     def __repr__(self):
-        return "{0}(use_decimal={1!r}, metavar={2!r}, default={3!r}, optional={4!r}, remaining={5!r})".format(
+        return "{0}(use_decimal={1!r}, metavar={2!r}, default={3!r}, optional={4!r}, remaining={5!r}, help={6!r})".format(
             self.__class__.__name__, self.use_decimal, self.metavar,
-            self.default, self.optional, self.remaining
+            self.default, self.optional, self.remaining, self.help
         )
 
 
@@ -409,8 +422,8 @@ class Choice(Type):
     Represents a choice between `choices` where the choice is something of
     `type`.
     """
-    def __init__(self, type, choices, metavar=None):
-        Type.__init__(self, metavar=metavar)
+    def __init__(self, type, choices, metavar=None, help=None):
+        Type.__init__(self, metavar=metavar, help=None)
         self.type = type
         self.choices = choices
 
@@ -418,7 +431,8 @@ class Choice(Type):
         return self.__class__(
             self.type.copy(),
             self.choices,
-            metavar=self.metavar
+            metavar=self.metavar,
+            help=self.help
         )
 
     def parse(self, command, arguments):
@@ -434,6 +448,7 @@ class Choice(Type):
         return parsed
 
     def __repr__(self):
-        return "{0}({1!r}, {2!r}, metavar={3!r})".format(
-            self.__class__.__name__, self.type, self.choices, self.metavar
+        return "{0}({1!r}, {2!r}, metavar={3!r}, help={4!r})".format(
+            self.__class__.__name__, self.type, self.choices, self.metavar,
+            self.help
         )

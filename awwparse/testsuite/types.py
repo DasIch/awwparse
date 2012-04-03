@@ -65,7 +65,7 @@ class TypeTestCase(TestCase):
     def test_repr(self):
         self.assert_equal(
             repr(Type()),
-            "Type(metavar=None, default=missing, optional=False, remaining=False)"
+            "Type(metavar=None, default=missing, optional=False, remaining=False, help=None)"
         )
 
 
@@ -194,7 +194,7 @@ class AnyTestCase(TestCase):
         bytes = Bytes()
         self.assert_equal(
             repr(Any([Bytes()], "foo")),
-            "Any([%r], 'foo', metavar=None, default=missing, optional=False, remaining=False" % bytes
+            "Any([%r], 'foo', metavar=None, default=missing, optional=False, remaining=False, help=None)" % bytes
         )
 
 
@@ -283,7 +283,7 @@ class NumberTestCase(TestCase):
     def test_repr(self):
         self.assert_equal(
             repr(Number()),
-            "Number(use_decimal=False, metavar=None, default=missing, optional=False, remaining=False)"
+            "Number(use_decimal=False, metavar=None, default=missing, optional=False, remaining=False, help=None)"
         )
 
     test_parse = make_parse_test(
@@ -319,7 +319,7 @@ class ChoiceTestCase(TestCase):
         integer = Integer()
         self.assert_equal(
             repr(Choice(integer, [1, 2])),
-            "Choice(%r, [1, 2], metavar=None)" % integer
+            "Choice(%r, [1, 2], metavar=None, help=None)" % integer
         )
 
     def test_parse(self):

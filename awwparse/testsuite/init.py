@@ -14,13 +14,14 @@ except ImportError:
 from six import u
 
 from awwparse import (
-    Option, Command, Last, List, Arguments, Argument, CLI, Integer,
+    Option, Command, Last, List, Arguments, CLI, Integer,
     String
 )
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
-    UnexpectedArgument, PositionalArgumentMissing, UserTypeError
+    UnexpectedArgument, PositionalArgumentMissing, UserTypeError,
+    ArgumentConflict
 )
 from awwparse.testsuite import TestCase, make_suite, py3test
 
@@ -189,7 +190,7 @@ class CommandTestCase(TestCase):
     def test_declarative(self):
         results = []
         class Foo(Command):
-            arguments = Argument(Integer(), "a")
+            arguments = Integer(metavar="a")
 
             def main(self, a):
                 results.append(a)
@@ -215,7 +216,7 @@ class CommandTestCase(TestCase):
         command.add_command("bar", Command())
         self.assert_equal(command.get_usage(), u("[-o foo] [-h] {bar}"))
 
-        command.add_argument(Argument(String(), "baz"))
+        command.add_argument(String(metavar="baz"))
         self.assert_equal(command.get_usage(), u("[-o foo] [-h] {bar} baz"))
 
     def test_add_option(self):
@@ -273,6 +274,14 @@ class CommandTestCase(TestCase):
         command.add_command("foobar", Command(), force=True)
         with self.assert_raises(CommandConflict):
             command.add_command("foobar", Command())
+
+    def test_add_argument(self):
+        command = Command()
+        with self.assert_raises(ValueError):
+            command.add_argument(String())
+        command.add_argument(String(metavar=u("foo"), remaining=True))
+        with self.assert_raises(ArgumentConflict):
+            command.add_argument(String(metavar=u("bar")))
 
     def test_run(self):
         class TestCommand(Command):
@@ -352,7 +361,7 @@ class CommandTestCase(TestCase):
 
     def test_arguments(self):
         class TestCommand(Command):
-            arguments = Argument(String(), "foo")
+            arguments = String(metavar=u("foo"))
 
             def main(self, foo):
                 assert foo == u("foo")
@@ -360,7 +369,7 @@ class CommandTestCase(TestCase):
         TestCommand().run(["foo"])
 
         class TestCommand(Command):
-            arguments = Argument(String(), "foo"), Argument(String(), "bar")
+            arguments = String(metavar=u("foo")), String(metavar=u("bar"))
 
             def main(self, foo, bar):
                 assert foo == "foo"
@@ -393,31 +402,10 @@ class ArgumentsTestCase(TestCase):
         )
 
 
-class ArgumentTestCase(TestCase):
-    def test_usage(self):
-        self.assert_equal(Argument(String(), u("foo")).usage, u("foo"))
-        self.assert_equal(
-            Argument(String(), "foo", optional=True).usage,
-            u("[foo]")
-        )
-        self.assert_equal(
-            Argument(String(), ("foo"), remaining=True).usage,
-            u("[foo ...]")
-        )
-
-    def test_repr(self):
-        bytes = String()
-        argument = Argument(bytes, u("foo"))
-        self.assert_equal(
-            repr(argument),
-            "Argument(%r, %r, help=None)" % (bytes, u("foo"))
-        )
-
-
 class CLITestCase(TestCase):
     def test_get_usage(self):
         cli = CLI(application_name=u("spam"))
-        cli.add_argument(Argument(String(), u("foo")))
+        cli.add_argument(String(metavar=u("foo")))
         self.assert_equal(cli.get_usage(), u("spam [-h] foo"))
 
         cli.usage = u("blubb")
@@ -442,7 +430,7 @@ class CLITestCase(TestCase):
     def test_print_help(self):
         stringio = StringIO()
         cli = CLI(application_name=u("app"), stdout=stringio, width=40)
-        cli.add_argument(Argument(String(), u("foo")))
+        cli.add_argument(String(metavar=u("foo")))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), u(
             "Usage: app [-h] foo\n"
@@ -567,6 +555,5 @@ class CLITestCase(TestCase):
 
 
 suite = make_suite([
-    OptionTestCase, CommandTestCase, ArgumentsTestCase, ArgumentTestCase,
-    CLITestCase
+    OptionTestCase, CommandTestCase, ArgumentsTestCase, CLITestCase
 ])

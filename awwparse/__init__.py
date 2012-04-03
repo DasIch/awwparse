@@ -24,7 +24,6 @@ from awwparse.exceptions import (
     ArgumentConflict, PositionalArgumentMissing, CLIError
 )
 
-# imported for the API
 from awwparse.types import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
     Type, Boolean, Last, List, Set, Adder, ContainerType, NativeString
@@ -67,7 +66,9 @@ def parse_argument_signature(arguments, _root=True):
     if not _root:
         arguments[0].optional = True
     for argument in arguments:
-        if isinstance(argument, Argument):
+        if isinstance(argument, Type):
+            if argument.metavar is None:
+                raise ValueError("metavar not set on: {0!r}".format(argument))
             result.append(argument)
         else:
             result.extend(parse_argument_signature(argument, _root=False))
@@ -100,8 +101,7 @@ class Command(object):
         for name in signature.positional_arguments:
             annotation = lookup_annotation(name)
             if isinstance(annotation, (Type, ContainerType)):
-                command.add_argument(Argument(annotation, name))
-            elif isinstance(annotation, Argument):
+                annotation.metavar = name
                 command.add_argument(annotation)
             else:
                 raise ValueError(
@@ -111,8 +111,8 @@ class Command(object):
             name = signature.arbitary_positional_arguments
             annotation = lookup_annotation(name)
             if isinstance(annotation, (Type, ContainerType)):
-                command.add_argument(Argument(annotation, name, remaining=True))
-            elif isinstance(annotation, Argument):
+                annotation.metavar = name
+                annotation.remaining = True
                 command.add_argument(annotation)
             else:
                 raise ValueError(
@@ -356,6 +356,8 @@ class Command(object):
         remaining command line arguments - in which case the added argument
         would never be reached.
         """
+        if argument.metavar is None:
+            raise ValueError("metavar not set on: {0!r}".format(argument))
         if self.arguments and self.arguments[-1].remaining:
             raise ArgumentConflict(
                 u("last argument {0} takes all remaining arguments").format(
@@ -529,7 +531,9 @@ class Command(object):
                         raise unexcepted_argument
                     else:
                         arguments.rewind()
-                        args = positional.parse(self, args, arguments)
+                        args = positional.parse_as_positional(
+                            self, args, arguments
+                        )
                 else:
                     while modified != previous_modified:
                         if hasattr(match, "run"):
@@ -576,81 +580,6 @@ class Command(object):
                     kwargs
                 )
             )
-
-
-class Argument(object):
-    """
-    Represents a positional argument to a :class:`CLI` or a :class:`Command`.
-    """
-    def __init__(self, type, metavar, default=missing, optional=False,
-                 remaining=False, help=None):
-        if isinstance(type, Type):
-            self.type = type
-        else:
-            if not len(type) == 1:
-                raise TypeError(type)
-            self.type = type[0]
-        self.metavar = metavar
-        self.default = default
-        self.optional = optional
-        self.remaining = remaining
-        self.help = help
-
-    @property
-    def metavar(self):
-        return self.type.metavar
-
-    @metavar.setter
-    def metavar(self, new_metavar):
-        self.type.metavar = new_metavar
-
-    @property
-    def default(self):
-        return self.type.default
-
-    @default.setter
-    def default(self, new_default):
-        self.type.default = new_default
-
-    @property
-    def optional(self):
-        return self.type.optional
-
-    @optional.setter
-    def optional(self, new_optional):
-        self.type.optional = new_optional
-
-    @property
-    def remaining(self):
-        return self.type.remaining
-
-    @remaining.setter
-    def remaining(self, new_remaining):
-        self.type.remaining = new_remaining
-
-    @property
-    def usage(self):
-        if self.remaining:
-            return u("[{0} ...]").format(self.metavar)
-        elif self.optional:
-            return u("[{0}]").format(self.metavar)
-        return self.metavar
-
-    def parse(self, command, result, arguments):
-        parsed = self.type.parse(command, arguments)
-        if self.remaining:
-            result.extend(parsed)
-        else:
-            result.append(parsed)
-        return result
-
-    def __repr__(self):
-        return "{0}({1!r}, {2!r}, help={3!r})".format(
-            self.__class__.__name__,
-            self.type,
-            self.metavar,
-            self.help
-        )
 
 
 class Option(object):
