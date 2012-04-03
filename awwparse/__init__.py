@@ -29,11 +29,6 @@ from awwparse.types import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
     Type, Boolean, Last, List, Set, Adder, ContainerType, NativeString
 )
-# keeps pyflakes happy
-assert (
-    String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice, Type,
-    Boolean, Last, List, Set, Adder, NativeString
-)
 
 
 class Arguments(object):
@@ -873,3 +868,10 @@ class CLI(Command):
         return Command.run(
             self, arguments, passthrough_errors=passthrough_errors
         )
+
+
+__all__ = [
+    "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
+    "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Type",
+    "Boolean", "Last", "List", "Set", "Adder", "NativeString"
+]
