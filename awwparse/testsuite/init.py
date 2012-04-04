@@ -18,17 +18,9 @@ from awwparse.exceptions import (
     UnexpectedArgument, PositionalArgumentMissing, UserTypeError,
     ArgumentConflict
 )
-from awwparse.testsuite import TestCase, make_suite, py3test
-
-
-def make_command(options=None, commands=None, command_cls=Command):
-    def main(self, **kwargs):
-        return kwargs
-    return type("TestCommand", (command_cls, ), {
-        "options": {} if options is None else options,
-        "commands": {} if commands is None else commands,
-        "main": main
-    })()
+from awwparse.testsuite import (
+    TestCase, make_suite, py3test, TestCommand, TestCLI
+)
 
 
 class OptionTestCase(TestCase):
@@ -36,52 +28,60 @@ class OptionTestCase(TestCase):
         class TestOption(Option):
             container_argument = List
 
-        command = make_command({"foo": TestOption("a", String())})
+        command = TestCommand(options={"foo": TestOption("a", String())})
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": [u("foo"), u("bar")]}
+            ((), {"foo": [u("foo"), u("bar")]})
         )
 
     def test_signature(self):
-        command = make_command(
-            {"option": Option("o", String(), String(), String())}
+        command = TestCommand(
+            options={"option": Option("o", String(), String(), String())}
         )
         for args in [["-o"], ["-o", "foo"], ["-o", "foo", "bar"]]:
             with self.assert_raises(ArgumentMissing):
                 command.run(args, passthrough_errors=True)
 
-        command = make_command(
-            {"option": Option("o", String(), [String(), String()])}
+        command = TestCommand(
+            options={"option": Option("o", String(), [String(), String()])}
         )
-        self.assert_equal(command.run(["-o", "a"]), {"option": [u("a")]})
+        self.assert_equal(
+            command.run(["-o", "a"]),
+            ((), {"option": [u("a")]})
+        )
         self.assert_equal(
             command.run(["-o", "a", "b", "c"]),
-            {"option": ["a", "b", "c"]}
+            ((), {"option": ["a", "b", "c"]})
         )
         for args in [["-o"], ["-o", "a", "b"]]:
             with self.assert_raises(ArgumentMissing):
                 command.run(args, passthrough_errors=True)
 
-        command = make_command({
-            "option": Option("o", String(), [String(), [String()]])
-        })
+        command = TestCommand(
+            options={"option": Option("o", String(), [String(), [String()]])}
+        )
         args = ["-o", "a", "b", "c"]
         for i in range(2, len(args) + 1):
             self.assert_equal(
                 command.run(args[:i]),
-                {"option": args[1:i] or [missing]}
+                ((), {"option": args[1:i] or [missing]})
             )
 
     def test_default(self):
-        command = make_command({"option": Option("o", String())})
+        command = TestCommand(
+            options={"option": Option("o", String())}
+        )
         self.assert_equal(command.options["option"].default, missing)
-        self.assert_equal(command.run([]), {})
+        self.assert_equal(command.run([]), ((), {}))
 
-        command = make_command(
+        command = TestCommand(
             {"option": Option("o", String(default=u("foobar")))}
         )
         self.assert_equal(command.options["option"].default, u("foobar"))
-        self.assert_equal(command.run([]), {"option": u("foobar")})
+        self.assert_equal(
+            command.run([]),
+            ((), {"option": u("foobar")})
+        )
 
     def test_get_usage(self):
         option = Option("a", String(metavar=u("foo")))
@@ -95,30 +95,37 @@ class OptionTestCase(TestCase):
         self.assert_equal(option.get_usage(using="both"), u("-a foo, --abc foo"))
 
     def test_abbreviation_prefix(self):
-        command = make_command({"option": Option("o", String())})
+        command = TestCommand(
+            options={"option": Option("o", String())}
+        )
         self.assert_equal(command.options["option"].abbreviation_prefix, "-")
         self.assert_true(command.options["option"].matches("-o"))
 
-        command = make_command({
-            "option": Option("o", String(), abbreviation_prefix="+")
-        })
+        command = TestCommand(
+            options={"option": Option("o", String(), abbreviation_prefix="+")}
+        )
         self.assert_equal(command.options["option"].abbreviation_prefix, "+")
         self.assert_true(command.options["option"].matches("+o"))
-        self.assert_equal(command.run(["+o", "foo"]), {"option": u("foo")})
+        self.assert_equal(
+            command.run(["+o", "foo"]),
+            ((), {"option": u("foo")})
+        )
 
     def test_name_prefix(self):
-        command = make_command({"option": Option("option", String())})
+        command = TestCommand(
+            options={"option": Option("option", String())}
+        )
         self.assert_equal(command.options["option"].name_prefix, "--")
         self.assert_true(command.options["option"].matches("--option"))
 
-        command = make_command({
-            "option": Option("option", String(), name_prefix="++")
-        })
+        command = TestCommand(
+            options={"option": Option("option", String(), name_prefix="++")}
+        )
         self.assert_equal(command.options["option"].name_prefix, "++")
         self.assert_true(command.options["option"].matches("++option"))
         self.assert_equal(
             command.run(["++option", "foo"]),
-            {"option": u("foo")}
+            ((), {"option": u("foo")})
         )
 
     def test_matches(self):
@@ -318,14 +325,16 @@ class CommandTestCase(TestCase):
         TestCommand().run(["-a", "foo", "-b", "bar"])
 
     def test_multiple_abbreviations(self):
-        command = make_command({
-            "a": Option("a", String()),
-            "b": Option("b", String()),
-            "c": Option("c", String())
-        })
+        command = TestCommand(
+            options={
+                "a": Option("a", String()),
+                "b": Option("b", String()),
+                "c": Option("c", String())
+            }
+        )
         self.assert_equal(
             command.run(["-abc", "foo", "bar", "baz"]),
-            {"a": u("foo"), "b": u("bar"), "c": u("baz")}
+            ((), {"a": u("foo"), "b": u("bar"), "c": u("baz")})
         )
 
     def test_subcommands(self):
@@ -403,8 +412,10 @@ class ArgumentsTestCase(TestCase):
 
 class CLITestCase(TestCase):
     def test_get_usage(self):
-        cli = CLI(application_name=u("spam"))
-        cli.add_argument(String(metavar=u("foo")))
+        cli = CLI(
+            application_name=u("spam"),
+            arguments=[String(metavar=u("foo"))]
+        )
         self.assert_equal(cli.get_usage(), u("spam [-h] foo"))
 
         cli.usage = u("blubb")
@@ -429,8 +440,12 @@ class CLITestCase(TestCase):
 
     def test_print_help(self):
         stringio = StringIO()
-        cli = CLI(application_name=u("app"), stdout=stringio, width=40)
-        cli.add_argument(String(metavar=u("foo")))
+        cli = CLI(
+            application_name=u("app"),
+            stdout=stringio,
+            width=40,
+            arguments=[String(metavar=u("foo"))]
+        )
         cli.print_help()
         self.assert_equal(stringio.getvalue(), u(
             "Usage: app [-h] foo\n"
@@ -474,9 +489,6 @@ class CLITestCase(TestCase):
         ))
 
     def test_error_handling(self):
-        class TestCLI(CLI):
-            def main(self, *args, **kwargs):
-                return args, kwargs
         stringio = StringIO()
         def exit(code):
             assert code != 1
@@ -485,9 +497,9 @@ class CLITestCase(TestCase):
             stdout=stringio,
             stderr=stringio,
             exit=exit,
-            width=40
+            width=40,
+            options={"foo": Option("o", Integer())}
         )
-        cli.add_option("foo", Option("o", Integer()))
         with self.assert_raises(AssertionError) as error:
             cli.run(["-o", "foo"])
         self.assert_equal(
@@ -513,11 +525,13 @@ class CLITestCase(TestCase):
             stdout=stringio,
             stderr=stringio,
             exit=exit,
-            width=40
+            width=40,
+            commands={
+                "spam": Command(
+                    options={"foo": Option("o", String())}
+                )
+            }
         )
-        command = Command()
-        command.add_option("foo", Option("o", String()))
-        cli.add_command("spam", command)
         with self.assert_raises(AssertionError) as error:
             cli.run(["spam", "-o"])
         self.assert_equal(

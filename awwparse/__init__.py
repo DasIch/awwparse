@@ -17,7 +17,7 @@ from six import u
 
 from awwparse.utils import (
     set_attributes_from_kwargs, missing, force_list, get_terminal_width,
-    golden_split, set_attributes, Signature
+    golden_split, set_attributes, Signature, iter_mapping
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -171,18 +171,24 @@ class Command(object):
         )()
         return command
 
-    def __init__(self):
+    def __init__(self, options=None, commands=None, arguments=None):
         self.options = {"__awwparse_help": HelpOption()}
-        for name, option in self.__class__.options.items():
-            self.add_option(name, option)
-        self.options = self.options.copy()
+        self.add_options(self.__class__.options)
+        if options is not None:
+            self.add_options(options)
+
         self.commands = {}
-        for name, command in self.__class__.commands.items():
-            self.add_command(name, command.copy())
+        self.add_commands(self.__class__.commands)
+        if commands is not None:
+            self.add_commands(commands)
+
         self.arguments = parse_argument_signature(
             force_list(self.__class__.arguments),
             require_metavar=True
         )
+        if arguments is not None:
+            self.add_arguments(arguments)
+
         self.parent = None
 
         signature = Signature.from_method(self.main)
@@ -303,6 +309,15 @@ class Command(object):
             )
         self.options[name] = option
 
+    def add_options(self, options, force=False, resolve_conflicts=False):
+        """
+        Adds `options` from a given mapping.
+        """
+        for name, option in iter_mapping(options):
+            self.add_option(
+                name, option, force=force, resolve_conflicts=resolve_conflicts
+            )
+
     def remove_option(self, to_be_removed_option):
         """
         Removes the given option.
@@ -335,6 +350,13 @@ class Command(object):
         command.parent = self
         self.commands[name] = command
 
+    def add_commands(self, commands, force=False):
+        """
+        Adds `commands` from a given mapping.
+        """
+        for name, command in iter_mapping(commands):
+            self.add_command(name, command)
+
     def add_argument(self, argument):
         """
         Adds the given `argument` to the command.
@@ -352,6 +374,13 @@ class Command(object):
                 )
             )
         self.arguments.append(argument)
+
+    def add_arguments(self, arguments):
+        """
+        Adds `arguments` from a given iterable.
+        """
+        for argument in arguments:
+            self.add_argument(argument)
 
     def __getattr__(self, name):
         missing = object()
@@ -753,10 +782,13 @@ class CLI(Command):
     #: message (default: 2).
     section_indent = 2
 
-    def __init__(self, application_name=sys.argv[0], usage=None,
-                 stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr,
-                 exit=sys.exit, width=None):
-        Command.__init__(self)
+    def __init__(self, options=None, commands=None, arguments=None,
+                 application_name=sys.argv[0], usage=None, stdin=sys.stdin,
+                 stdout=sys.stdout, stderr=sys.stderr, exit=sys.exit,
+                 width=None):
+        Command.__init__(
+            self, options=options, commands=commands, arguments=arguments
+        )
         self.application_name = application_name
         self.usage = usage
         self.stdin = stdin

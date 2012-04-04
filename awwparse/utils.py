@@ -184,3 +184,7 @@ class Signature(object):
         implementing :meth:`object.__call__()`.
         """
         return cls.from_method(object.__call__)
+
+
+def iter_mapping(mapping):
+    return mapping.items() if isinstance(mapping, dict) else mapping

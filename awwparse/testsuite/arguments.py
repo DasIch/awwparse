@@ -71,41 +71,37 @@ class ArgumentTestCase(TestCase):
 
 class LastTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand()
-        command.add_option("foo", Option("a", Last(String())))
+        command = TestCommand(options={"foo": Option("a", Last(String()))})
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": u("bar")}
+            ((), {"foo": u("bar")})
         )
 
 
 class ListTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand()
-        command.add_option("foo", Option("a", List(String())))
+        command = TestCommand(options={"foo": Option("a", List(String()))})
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": [u("foo"), u("bar")]}
+            ((), {"foo": [u("foo"), u("bar")]})
         )
 
 
 class SetTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand()
-        command.add_option("foo", Option("a", Set(String())))
+        command = TestCommand(options={"foo": Option("a", Set(String()))})
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
-            {"foo": set([u("foo"), u("bar")])}
+            ((), {"foo": set([u("foo"), u("bar")])})
         )
 
 
 class AdderTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand()
-        command.add_option("foo", Option("a", Adder(Integer())))
+        command = TestCommand(options={"foo": Option("a", Adder(Integer()))})
         self.assert_equal(
             command.run(["-a", "1", "-a", "1"]),
-            {"foo": 2}
+            ((), {"foo": 2})
         )
 
 
@@ -116,21 +112,21 @@ def make_parse_test(argument, single, remaining, optional):
         for args, expected in single:
             self.assert_equal(
                 command.run(["-a"] + args),
-                {"foo": expected}
+                ((), {"foo": expected})
             )
 
         command.add_option("bar", Option("b", argument(remaining=True)))
         for args, expected in remaining:
             self.assert_equal(
                 command.run(["-b"] + args, passthrough_errors=True),
-                {"bar": expected}
+                ((), {"bar": expected})
             )
 
         command.add_option("baz", Option("c", argument(), argument(optional=True)))
         for args, expected in optional:
             self.assert_equal(
                 command.run(["-c"] + args, passthrough_errors=True),
-                {"baz": expected}
+                ((), {"baz": expected})
             )
     return parse_test
 
@@ -305,12 +301,24 @@ class BooleanTestCase(TestCase):
     def test_parse(self):
         command = TestCommand()
         command.add_option("foo", Option("a", Boolean()))
-        self.assert_equal(command.run([]), {"foo": False})
-        self.assert_equal(command.run(["-a"]), {"foo": True})
+        self.assert_equal(
+            command.run([]),
+            ((), {"foo": False})
+        )
+        self.assert_equal(
+            command.run(["-a"]),
+            ((), {"foo": True})
+        )
 
         command.add_option("bar", Option("b", Boolean(default=True)))
-        self.assert_equal(command.run([]), {"foo": False, "bar": True})
-        self.assert_equal(command.run(["-b"]), {"foo": False, "bar": False})
+        self.assert_equal(
+            command.run([]),
+            ((), {"foo": False, "bar": True})
+        )
+        self.assert_equal(
+            command.run(["-b"]),
+            ((), {"foo": False, "bar": False})
+        )
 
 
 
@@ -323,10 +331,17 @@ class ChoiceTestCase(TestCase):
         )
 
     def test_parse(self):
-        action = TestCommand()
-        action.add_option("foo", Option("a", Choice(Integer(), [1, 2])))
-        self.assert_equal(action.run(["-a", "1"]), {"foo": 1})
-        self.assert_equal(action.run(["-a", "2"]), {"foo": 2})
+        action = TestCommand(
+            options={"foo": Option("a", Choice(Integer(), [1, 2]))}
+        )
+        self.assert_equal(
+            action.run(["-a", "1"]),
+            ((), {"foo": 1})
+        )
+        self.assert_equal(
+            action.run(["-a", "2"]),
+            ((), {"foo": 2})
+        )
         with self.assert_raises(UserTypeError):
             action.run(["-a", "3"], passthrough_errors=True)
 

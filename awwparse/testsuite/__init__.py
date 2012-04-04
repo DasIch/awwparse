@@ -18,12 +18,17 @@ from itertools import chain
 import six
 from six.moves import map
 
-from awwparse import Command
+from awwparse import Command, CLI
 
 
 class TestCommand(Command):
-    def main(self, **kwargs):
-        return kwargs
+    def main(self, *args, **kwargs):
+        return args, kwargs
+
+
+class TestCLI(CLI):
+    def main(self, *args, **kwargs):
+        return args, kwargs
 
 
 _begin_word_re = re.compile(r"_([a-z])")
