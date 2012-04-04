@@ -24,9 +24,9 @@ from awwparse.exceptions import (
     ArgumentConflict, PositionalArgumentMissing, CLIError
 )
 
-from awwparse.types import (
+from awwparse.arguments import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    Type, Boolean, Last, List, Set, Adder, ContainerType, NativeString
+    Argument, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString
 )
 
 
@@ -66,7 +66,7 @@ def parse_argument_signature(arguments, _root=True):
     if not _root:
         arguments[0].optional = True
     for argument in arguments:
-        if isinstance(argument, Type):
+        if isinstance(argument, Argument):
             if argument.metavar is None:
                 raise ValueError("metavar not set on: {0!r}".format(argument))
             result.append(argument)
@@ -100,7 +100,7 @@ class Command(object):
                 raise ValueError("missing annotation for: {0}".format(name))
         for name in signature.positional_arguments:
             annotation = lookup_annotation(name)
-            if isinstance(annotation, (Type, ContainerType)):
+            if isinstance(annotation, (Argument, ContainerArgument)):
                 annotation.metavar = name
                 command.add_argument(annotation)
             else:
@@ -110,7 +110,7 @@ class Command(object):
         if signature.arbitary_positional_arguments is not None:
             name = signature.arbitary_positional_arguments
             annotation = lookup_annotation(name)
-            if isinstance(annotation, (Type, ContainerType)):
+            if isinstance(annotation, (Argument, ContainerArgument)):
                 annotation.metavar = name
                 annotation.remaining = True
                 command.add_argument(annotation)
@@ -120,7 +120,7 @@ class Command(object):
                 )
         for name in signature.keyword_arguments:
             annotation = lookup_annotation(name)
-            if isinstance(annotation, (Type, ContainerType)):
+            if isinstance(annotation, (Argument, ContainerArgument)):
                 command.add_option(
                     name,
                     Option(name[0], name[1:], annotation),
@@ -145,10 +145,9 @@ class Command(object):
         an argument that takes all remaining ones.
 
         Each argument has to be given an annotation. Allowed annotations are
-        :class:`~awwparse.types.Type` objects and
-        :class:`~awwparse.types.ContainerType` objects. For (arbitary)
-        positional arguments you can also provide an :class:`Argument` object
-        and for keyword arguments an :class:`Option` object.
+        :class:`~awwparse.arguments.Argument` objects and
+        :class:`~awwparse.arguments.ContainerArgument` objects. For keyword
+        arguments you can also provide an :class:`Option` object.
 
         If an annotation is missing or has a wrong type a :exc:`ValueError` is
         raised.
@@ -588,7 +587,7 @@ class Option(object):
     ``--option``.
 
     Takes a single character as abbreviated option name or the complete option
-    name or both (in that order) followed by a type signature.
+    name or both (in that order) followed by an argument signature.
 
     Other optional parameters are:
 
@@ -598,7 +597,7 @@ class Option(object):
     :param help: A help message explaining the option in detail
                  (default: ``None``).
     """
-    container_type = Last
+    container_argument = Last
 
     def __init__(self, *signature, **kwargs):
         name, abbreviation, parser = self._parse_signature(signature)
@@ -626,26 +625,26 @@ class Option(object):
         if isinstance(signature[0], str) and isinstance(signature[1], str):
             abbreviation = signature[0]
             name = signature[1]
-            types = signature[2:]
+            arguments = signature[2:]
         elif isinstance(signature[0], str):
             if len(signature[0]) == 1:
                 abbreviation = signature[0]
             else:
                 name = signature[0]
-            types = signature[1:]
+            arguments = signature[1:]
         else:
             raise TypeError(
                 "expected name or abbreviation as first argument, got {0!r}".format(
                     signature[0]
                 )
             )
-        if len(types) == 1 and isinstance(types[0], ContainerType):
-            parser = types[0]
+        if len(arguments) == 1 and isinstance(arguments[0], ContainerArgument):
+            parser = arguments[0]
         else:
-            parser = self.container_type(*types)
-            if parser.types[0].optional:
+            parser = self.container_argument(*arguments)
+            if parser.arguments[0].optional:
                 raise ValueError(
-                    "first type must not be optional: {0!r}".format(types[0])
+                    "first argument must not be optional: {0!r}".format(arguments[0])
                 )
         return name, abbreviation, parser
 
@@ -801,6 +800,6 @@ class CLI(Command):
 
 __all__ = [
     "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
-    "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Type",
-    "Boolean", "Last", "List", "Set", "Adder", "NativeString"
+    "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
+    "Last", "List", "Set", "Adder", "NativeString"
 ]

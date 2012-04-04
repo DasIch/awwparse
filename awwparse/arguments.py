@@ -1,7 +1,7 @@
 # coding: utf-8
 """
-    awwparse.types
-    ~~~~~~~~~~~~~~
+    awwparse.arguments
+    ~~~~~~~~~~~~~~~~~~
 
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
@@ -21,31 +21,31 @@ from awwparse.exceptions import (
 )
 
 
-def parse_type_signature(types, _root=True):
+def parse_argument_signature(arguments, _root=True):
     result = []
     if not _root:
-        types[0].optional = True
-    for type in types:
-        if isinstance(type, Type):
-            result.append(type)
+        arguments[0].optional = True
+    for argument in arguments:
+        if isinstance(argument, Argument):
+            result.append(argument)
         else:
-            result.extend(parse_type_signature(type, _root=False))
+            result.extend(parse_argument_signature(argument, _root=False))
     return result
 
 
-class ContainerType(object):
-    def __init__(self, *types):
-        self.types = parse_type_signature(types)
+class ContainerArgument(object):
+    def __init__(self, *arguments):
+        self.arguments = parse_argument_signature(arguments)
 
     @property
     def default(self):
-        if len(self.types) == 1:
-            return self.types[0].default
+        if len(self.arguments) == 1:
+            return self.arguments[0].default
         return map(
             attrgetter("default"),
             takewhile(
-                lambda type: not type.optional and type.default is not missing,
-                self.types
+                lambda argument: not argument.optional and argument.default is not missing,
+                self.arguments
             )
         ) or missing
 
@@ -61,35 +61,35 @@ class ContainerType(object):
             return root, current
 
         def render(tree, _root=True):
-            if isinstance(tree, Type):
+            if isinstance(tree, Argument):
                 return tree.usage
             else:
                 nodes = u(" ").join(render(node, _root=False) for node in tree)
                 if _root:
                     return nodes
                 return u("[{0}]").format(nodes)
-        return render(reduce(step, self.types, ([], ) * 2)[0])
+        return render(reduce(step, self.arguments, ([], ) * 2)[0])
 
     def setdefault_metavars(self, metavar):
         if isinstance(metavar, six.binary_type):
             metavar = metavar.decode("utf-8")
-        for type in self.types:
-            if type.metavar is None:
-                type.metavar = metavar
+        for argument in self.arguments:
+            if argument.metavar is None:
+                argument.metavar = metavar
 
     def copy(self):
         return self.__class__(
-            *[type.copy() for type in self.types]
+            *[argument.copy() for argument in self.arguments]
         )
 
     def parse(self, command, arguments):
         result = []
-        for type in self.types:
+        for argument in self.arguments:
             try:
-                result.append(type.parse(command, arguments))
+                result.append(argument.parse(command, arguments))
             except EndOptionParsing:
                 break
-        return result if len(self.types) > 1 else result[0]
+        return result if len(self.arguments) > 1 else result[0]
 
     def parse_and_store(self, command, namespace, name, arguments):
         raise NotImplementedError()
@@ -97,11 +97,11 @@ class ContainerType(object):
     def __repr__(self):
         return "{0}({1})".format(
             self.__class__.__name__,
-            ", ".join(map(repr, self.types))
+            ", ".join(map(repr, self.arguments))
         )
 
 
-class Last(ContainerType):
+class Last(ContainerArgument):
     """
     Stores only the last occurance in the namespace.
     """
@@ -110,7 +110,7 @@ class Last(ContainerType):
         return namespace
 
 
-class List(ContainerType):
+class List(ContainerArgument):
     """
     Stores every occurance in a list.
     """
@@ -119,7 +119,7 @@ class List(ContainerType):
         return namespace
 
 
-class Set(ContainerType):
+class Set(ContainerArgument):
     """
     Stores every occurance in a set.
     """
@@ -128,7 +128,7 @@ class Set(ContainerType):
         return namespace
 
 
-class Adder(ContainerType):
+class Adder(ContainerArgument):
     """
     Stores the sum of every occurance.
     """
@@ -140,7 +140,7 @@ class Adder(ContainerType):
         return namespace
 
 
-class Type(object):
+class Argument(object):
     def __init__(self, metavar=None, default=missing, optional=False,
                  remaining=False, help=None):
         self.metavar = metavar
@@ -196,14 +196,14 @@ class Type(object):
         )
 
 
-class EncodingType(Type):
+class EncodingArgument(Argument):
     error_method = "replace"
 
     def get_encoding(self, command):
         return getattr(command, "stdin.encoding", locale.getpreferredencoding())
 
 
-class Bytes(EncodingType):
+class Bytes(EncodingArgument):
     """
     Represents a binary argument.
     """
@@ -235,7 +235,7 @@ class Bytes(EncodingType):
             raise
 
 
-class String(EncodingType):
+class String(EncodingArgument):
     """
     Represents a string argument.
     """
@@ -267,7 +267,7 @@ class String(EncodingType):
             raise
 
 
-class NativeString(Type):
+class NativeString(Argument):
     """
     Represents a "native" string argument.
     """
@@ -282,7 +282,7 @@ class NativeString(Type):
             raise
 
 
-class ConverterBase(Type):
+class ConverterBase(Argument):
     type = None
     type_conversion_exception = ValueError
     error_message = u("")
@@ -341,19 +341,19 @@ class Complex(ConverterBase):
 
 class Any(ConverterBase):
     """
-    Represents an argument of one of the given `types`.
+    Represents an argument of one of the given `arguments`.
 
-    Raises a :exc:`UserTypeError` with the given `error_message` if no type
+    Raises a :exc:`UserTypeError` with the given `error_message` if no argument
     successfully parses.
     """
-    def __init__(self, types, error_message, **kwargs):
+    def __init__(self, arguments, error_message, **kwargs):
         ConverterBase.__init__(self, **kwargs)
-        self.types = types
+        self.arguments = arguments
         self.error_message = error_message
 
     def copy(self):
         return self.__class__(
-            [type.copy() for type in self.types],
+            [argument.copy() for argument in self.arguments],
             self.error_message,
             metavar=self.metavar,
             default=self.default,
@@ -362,17 +362,17 @@ class Any(ConverterBase):
             help=self.help
         )
 
-    def convert(self, argument):
-        for type in self.types:
+    def convert(self, string):
+        for argument in self.arguments:
             try:
-                return type.convert(argument)
+                return argument.convert(string)
             except UserTypeError:
                 pass
-        raise UserTypeError(self.error_message.format(argument))
+        raise UserTypeError(self.error_message.format(string))
 
     def __repr__(self):
         return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}, help={7!r})".format(
-            self.__class__.__name__, self.types, self.error_message,
+            self.__class__.__name__, self.arguments, self.error_message,
             self.metavar, self.default, self.optional, self.remaining,
             self.help
         )
@@ -408,12 +408,12 @@ class Number(Any):
         )
 
 
-class Boolean(Type):
+class Boolean(Argument):
     """
     Represents a boolean.
     """
     def __init__(self, default=False, **kwargs):
-        Type.__init__(self, default=default, **kwargs)
+        Argument.__init__(self, default=default, **kwargs)
 
     @property
     def usage(self):
@@ -423,26 +423,26 @@ class Boolean(Type):
         return not self.default
 
 
-class Choice(Type):
+class Choice(Argument):
     """
     Represents a choice between `choices` where the choice is something of
-    `type`.
+    `argument`.
     """
-    def __init__(self, type, choices, metavar=None, help=None):
-        Type.__init__(self, metavar=metavar, help=None)
-        self.type = type
+    def __init__(self, argument, choices, metavar=None, help=None):
+        Argument.__init__(self, metavar=metavar, help=None)
+        self.argument = argument
         self.choices = choices
 
     def copy(self):
         return self.__class__(
-            self.type.copy(),
+            self.argument.copy(),
             self.choices,
             metavar=self.metavar,
             help=self.help
         )
 
     def parse(self, command, arguments):
-        parsed = self.type.parse(command, arguments)
+        parsed = self.argument.parse(command, arguments)
         for choice in force_list(parsed):
             if choice not in self.choices:
                 raise UserTypeError(
@@ -455,6 +455,6 @@ class Choice(Type):
 
     def __repr__(self):
         return "{0}({1!r}, {2!r}, metavar={3!r}, help={4!r})".format(
-            self.__class__.__name__, self.type, self.choices, self.metavar,
+            self.__class__.__name__, self.argument, self.choices, self.metavar,
             self.help
         )

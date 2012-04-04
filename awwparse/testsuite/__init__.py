@@ -64,8 +64,8 @@ def make_suite(test_cases):
 def suite():
     #: .. todo:: Automatically import and add suites from everything below
     #:           :mod:`awwparse.testsuite`.
-    from awwparse.testsuite import utils, init, types
-    return unittest.TestSuite([utils.suite, init.suite, types.suite])
+    from awwparse.testsuite import utils, init, arguments
+    return unittest.TestSuite([utils.suite, init.suite, arguments.suite])
 
 
 def find_all_tests(s):

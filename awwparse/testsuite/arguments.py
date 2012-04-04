@@ -1,7 +1,7 @@
 # coding: utf-8
 """
-    awwparse.testsuite.types
-    ~~~~~~~~~~~~~~~~~~~~~~~~
+    awwparse.testsuite.arguments
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
@@ -13,59 +13,59 @@ import six
 from six import u
 
 from awwparse import (
-    Bytes, String, Integer, Float, Decimal, Complex, Option, Type, Any, Number,
-    Choice, Boolean, Last, List, Set, Adder, ContainerType, NativeString
+    Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any, Number,
+    Choice, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString
 )
-from awwparse.types import parse_type_signature
+from awwparse.arguments import parse_argument_signature
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import TestCase, make_suite, TestCommand
 
 
-class TypesTestCase(TestCase):
-    def test_parse_type_signature(self):
-        optionals = partial(map, lambda type: type.optional)
+class ArgumentsTestCase(TestCase):
+    def test_parse_argument_signature(self):
+        optionals = partial(map, lambda argument: argument.optional)
 
         self.assert_true(all(not optional for optional in optionals(
-            parse_type_signature((Bytes(), Bytes(), Bytes()))
+            parse_argument_signature((Bytes(), Bytes(), Bytes()))
         )))
-        types = parse_type_signature([[Bytes(), [Bytes(), [Bytes()]]]])
+        arguments = parse_argument_signature([[Bytes(), [Bytes(), [Bytes()]]]])
         self.assert_true(all(optionals(
-            parse_type_signature([[Bytes(), [Bytes(), [Bytes()]]]])
+            parse_argument_signature([[Bytes(), [Bytes(), [Bytes()]]]])
         )))
-        types = parse_type_signature((Bytes(), [Bytes(), Bytes()]))
-        self.assert_true(not types[0].optional)
-        self.assert_true(types[1].optional)
-        self.assert_true(not types[2].optional)
+        arguments = parse_argument_signature((Bytes(), [Bytes(), Bytes()]))
+        self.assert_true(not arguments[0].optional)
+        self.assert_true(arguments[1].optional)
+        self.assert_true(not arguments[2].optional)
 
 
-class TypeTestCase(TestCase):
+class ArgumentTestCase(TestCase):
     def test_usage(self):
-        container = ContainerType(Bytes(metavar=u("foo")))
+        container = ContainerArgument(Bytes(metavar=u("foo")))
         self.assert_equal(container.usage, u("foo"))
 
-        container = ContainerType(Bytes(metavar=u("foo"), optional=True))
+        container = ContainerArgument(Bytes(metavar=u("foo"), optional=True))
         self.assert_equal(container.usage, u("[foo]"))
 
-        container = ContainerType(
+        container = ContainerArgument(
             Bytes(metavar=u("foo")),
             Bytes(metavar=u("bar"), optional=True)
         )
         self.assert_equal(container.usage, u("foo [bar]"))
 
-        container = ContainerType(
+        container = ContainerArgument(
             Bytes(metavar=("foo")),
             Bytes(metavar=("bar"), optional=True),
             Bytes(metavar=("baz"))
         )
         self.assert_equal(container.usage, u("foo [bar baz]"))
 
-        container = ContainerType(Bytes(metavar=u("foo"), remaining=True))
+        container = ContainerArgument(Bytes(metavar=u("foo"), remaining=True))
         self.assert_equal(container.usage, u("[foo ...]"))
 
     def test_repr(self):
         self.assert_equal(
-            repr(Type()),
-            "Type(metavar=None, default=missing, optional=False, remaining=False, help=None)"
+            repr(Argument()),
+            "Argument(metavar=None, default=missing, optional=False, remaining=False, help=None)"
         )
 
 
@@ -109,24 +109,24 @@ class AdderTestCase(TestCase):
         )
 
 
-def make_parse_test(type, single, remaining, optional):
+def make_parse_test(argument, single, remaining, optional):
     def parse_test(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", type()))
+        command.add_option("foo", Option("a", argument()))
         for args, expected in single:
             self.assert_equal(
                 command.run(["-a"] + args),
                 {"foo": expected}
             )
 
-        command.add_option("bar", Option("b", type(remaining=True)))
+        command.add_option("bar", Option("b", argument(remaining=True)))
         for args, expected in remaining:
             self.assert_equal(
                 command.run(["-b"] + args, passthrough_errors=True),
                 {"bar": expected}
             )
 
-        command.add_option("baz", Option("c", type(), type(optional=True)))
+        command.add_option("baz", Option("c", argument(), argument(optional=True)))
         for args, expected in optional:
             self.assert_equal(
                 command.run(["-c"] + args, passthrough_errors=True),
@@ -217,11 +217,11 @@ class IntegerTestCase(TestCase):
 
 
 class FloatingTestCaseMixin(object):
-    type = None
+    argument = None
     floating_type = None
 
     def test_convert(self):
-        floating = self.type()
+        floating = self.argument()
         self.assert_equal(floating.convert("1"), self.floating_type("1"))
         self.assert_equal(floating.convert("1.0"), self.floating_type("1.0"))
         with self.assert_raises(UserTypeError):
@@ -229,7 +229,7 @@ class FloatingTestCaseMixin(object):
 
 
 class FloatTestCase(FloatingTestCaseMixin, TestCase):
-    type = Float
+    argument = Float
     floating_type = float
 
     test_parse = make_parse_test(
@@ -244,7 +244,7 @@ class FloatTestCase(FloatingTestCaseMixin, TestCase):
 
 
 class DecimalTestCase(FloatingTestCaseMixin, TestCase):
-    type = Decimal
+    argument = Decimal
     floating_type = decimal.Decimal
 
     test_parse = make_parse_test(
@@ -334,6 +334,7 @@ class ChoiceTestCase(TestCase):
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
-    ChoiceTestCase, BooleanTestCase, TypeTestCase, TypesTestCase, LastTestCase,
-    ListTestCase, SetTestCase, AdderTestCase, NativeStringTestCase
+    ChoiceTestCase, BooleanTestCase, ArgumentTestCase, ArgumentsTestCase,
+    LastTestCase, ListTestCase, SetTestCase, AdderTestCase,
+    NativeStringTestCase
 ])

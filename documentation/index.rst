@@ -12,4 +12,4 @@ API Documentation
 
    api/awwparse.rst
    api/exceptions.rst
-   api/types.rst
+   api/arguments.rst

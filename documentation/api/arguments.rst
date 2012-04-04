@@ -1,12 +1,12 @@
-`awwparse.types`
-================
+`awwparse.arguments`
+====================
 
 
-.. module:: awwparse.types
+.. module:: awwparse.arguments
 
 
-Container Types
----------------
+Container Arguments
+-------------------
 
 .. autoclass:: Last
    :members:
@@ -24,8 +24,8 @@ Container Types
    :members:
 
 
-Types
------
+Arguments
+---------
 
 
 .. autoclass:: Bytes

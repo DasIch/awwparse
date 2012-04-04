@@ -37,9 +37,9 @@ def make_command(options=None, commands=None, command_cls=Command):
 
 
 class OptionTestCase(TestCase):
-    def test_type_container(self):
+    def test_container_argument(self):
         class TestOption(Option):
-            container_type = List
+            container_argument = List
 
         command = make_command({"foo": TestOption("a", String())})
         self.assert_equal(
