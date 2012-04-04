@@ -6,12 +6,7 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
-
-from six import u
+from six import u, StringIO
 
 from awwparse import (
     Option, Command, Last, List, Arguments, CLI, Integer,
