@@ -214,7 +214,10 @@ class Bytes(EncodingType):
             return string.encode(encoding, self.error_method)
         except UnicodeEncodeError:
             raise UserTypeError(
-                u("failed to decode {0!r} with {1!r}").format(string, encoding)
+                u("failed to decode {string!r} with {encoding!r}").format(
+                    string=string,
+                    encoding=encoding
+                )
             )
 
     def parse(self, command, arguments):
@@ -243,7 +246,10 @@ class String(EncodingType):
             return bytes.decode(encoding, self.error_method)
         except UnicodeDecodeError:
             raise UserTypeError(
-                u("failed to decode {0!r} with {1!r}").format(bytes, encoding)
+                u("failed to decode {bytes!r} with {encoding!r}").format(
+                    bytes=bytes,
+                    encoding=encoding
+                )
             )
 
     def parse(self, command, arguments):
@@ -380,7 +386,7 @@ class Number(Any):
         Any.__init__(
             self,
             [Integer(), (Decimal if use_decimal else Float)(), Complex()],
-            u("{0!r} is not a number"),
+            u("{argument!r} is not a number"),
             **kwargs
         )
         self.use_decimal = use_decimal
@@ -440,9 +446,9 @@ class Choice(Type):
         for choice in force_list(parsed):
             if choice not in self.choices:
                 raise UserTypeError(
-                    u("{0!r} not in {1!r}").format(
-                        choice,
-                        ", ".join(map(repr, self.choices))
+                    u("{argument!r} not one of {choices}").format(
+                        argument=choice,
+                        choices=", ".join(map(repr, self.choices))
                     )
                 )
         return parsed
