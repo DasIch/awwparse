@@ -48,12 +48,16 @@ class OptionTestCase(TestCase):
         )
 
     def test_signature(self):
-        command = make_command({"option": Option("o", String(), String(), String())})
+        command = make_command(
+            {"option": Option("o", String(), String(), String())}
+        )
         for args in [["-o"], ["-o", "foo"], ["-o", "foo", "bar"]]:
             with self.assert_raises(ArgumentMissing):
                 command.run(args, passthrough_errors=True)
 
-        command = make_command({"option": Option("o", String(), [String(), String()])})
+        command = make_command(
+            {"option": Option("o", String(), [String(), String()])}
+        )
         self.assert_equal(command.run(["-o", "a"]), {"option": [u("a")]})
         self.assert_equal(
             command.run(["-o", "a", "b", "c"]),
@@ -414,16 +418,17 @@ class CLITestCase(TestCase):
     def test_print_usage(self):
         stringio = StringIO()
         cli = CLI(
-            usage=(u("foobarbaz ") * 20).strip(),
-            width=80,
+            usage=(u("foobarbaz ") * 10).strip(),
+            width=40,
             stdout=stringio
         )
         cli.print_usage()
         self.assert_equal(
             stringio.getvalue(), u(
-                "Usage: foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
-                "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
-                "       foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz foobarbaz\n"
+                "Usage: foobarbaz foobarbaz foobarbaz\n"
+                "       foobarbaz foobarbaz foobarbaz\n"
+                "       foobarbaz foobarbaz foobarbaz\n"
+                "       foobarbaz\n"
             )
         )
 
