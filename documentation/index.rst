@@ -12,4 +12,3 @@ API Documentation
 
    api/awwparse.rst
    api/exceptions.rst
-   api/arguments.rst
