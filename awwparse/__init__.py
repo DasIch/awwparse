@@ -26,7 +26,8 @@ from awwparse.exceptions import (
 
 from awwparse.arguments import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    Argument, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString
+    Argument, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString,
+    parse_argument_signature
 )
 
 
@@ -59,20 +60,6 @@ class Arguments(object):
             self._arguments,
             self.trace
         )
-
-
-def parse_argument_signature(arguments, _root=True):
-    result = []
-    if not _root:
-        arguments[0].optional = True
-    for argument in arguments:
-        if isinstance(argument, Argument):
-            if argument.metavar is None:
-                raise ValueError("metavar not set on: {0!r}".format(argument))
-            result.append(argument)
-        else:
-            result.extend(parse_argument_signature(argument, _root=False))
-    return result
 
 
 class Command(object):
@@ -193,7 +180,8 @@ class Command(object):
         for name, command in self.__class__.commands.items():
             self.add_command(name, command.copy())
         self.arguments = parse_argument_signature(
-            force_list(self.__class__.arguments)
+            force_list(self.__class__.arguments),
+            require_metavar=True
         )
         self.parent = None
 

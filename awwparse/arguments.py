@@ -21,15 +21,19 @@ from awwparse.exceptions import (
 )
 
 
-def parse_argument_signature(arguments, _root=True):
+def parse_argument_signature(arguments, require_metavar=False, _root=True):
     result = []
     if not _root:
         arguments[0].optional = True
     for argument in arguments:
         if isinstance(argument, Argument):
+            if require_metavar and argument.metavar is None:
+                raise ValueError("metavar not set on: {0!r}".format(argument))
             result.append(argument)
         else:
-            result.extend(parse_argument_signature(argument, _root=False))
+            result.extend(parse_argument_signature(
+                argument, require_metavar=require_metavar, _root=False
+            ))
     return result
 
 
