@@ -15,7 +15,7 @@ import six
 from six import u
 from six.moves import reduce
 
-from awwparse.utils import missing
+from awwparse.utils import missing, create_repr
 from awwparse.exceptions import (
     UserTypeError, ArgumentMissing, EndOptionParsing
 )
@@ -99,10 +99,7 @@ class ContainerArgument(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        return "{0}({1})".format(
-            self.__class__.__name__,
-            ", ".join(map(repr, self.arguments))
-        )
+        return create_repr(self.__class__.__name__, self.arguments, {})
 
 
 class Last(ContainerArgument):
@@ -197,9 +194,16 @@ class Argument(object):
             return argument
 
     def __repr__(self):
-        return "{0}(metavar={1!r}, default={2!r}, optional={3!r}, remaining={4!r}, help={5!r})".format(
-            self.__class__.__name__, self.metavar, self.default, self.optional,
-            self.remaining, self.help
+        return create_repr(
+            self.__class__.__name__,
+            [],
+            {
+                "metavar": self.metavar,
+                "default": self.default,
+                "optional": self.optional,
+                "remaining": self.remaining,
+                "help": self.help
+            }
         )
 
 
@@ -375,10 +379,16 @@ class Any(ConverterBase):
         raise UserTypeError(self.error_message.format(string))
 
     def __repr__(self):
-        return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}, help={7!r})".format(
-            self.__class__.__name__, self.arguments, self.error_message,
-            self.metavar, self.default, self.optional, self.remaining,
-            self.help
+        return create_repr(
+            self.__class__.__name__,
+            [self.arguments, self.error_message],
+            {
+                "metavar": self.metavar,
+                "default": self.default,
+                "optional": self.optional,
+                "remaining": self.remaining,
+                "help": self.help
+            }
         )
 
 
@@ -403,9 +413,17 @@ class Number(Any):
         return args
 
     def __repr__(self):
-        return "{0}(use_decimal={1!r}, metavar={2!r}, default={3!r}, optional={4!r}, remaining={5!r}, help={6!r})".format(
-            self.__class__.__name__, self.use_decimal, self.metavar,
-            self.default, self.optional, self.remaining, self.help
+        return create_repr(
+            self.__class__.__name__,
+            [],
+            {
+                "use_decimal": self.use_decimal,
+                "metavar": self.metavar,
+                "default": self.default,
+                "optional": self.optional,
+                "remaining": self.remaining,
+                "help": self.help
+            }
         )
 
 
@@ -467,9 +485,16 @@ class Choice(Argument):
             raise
 
     def __repr__(self):
-        return "{0}({1!r}, {2!r}, metavar={3!r}, help={4!r})".format(
-            self.__class__.__name__, self.argument, self.choices, self.metavar,
-            self.help
+        return create_repr(
+            self.__class__.__name__,
+            [self.argument, self.choices],
+            {
+                "metavar": self.metavar,
+                "default": self.default,
+                "optional": self.optional,
+                "remaining": self.remaining,
+                "help": self.help
+            }
         )
 
 
@@ -514,7 +539,14 @@ class Mapping(Argument):
             raise
 
     def __repr__(self):
-        return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}, help={7!r})".format(
-            self.__class__.__name__, self.argument, self.mapping, self.metavar,
-            self.default, self.optional, self.remaining, self.help
+        return create_repr(
+            self.__class__.__name__,
+            [self.argument, self.mapping],
+            {
+                "metavar": self.metavar,
+                "default": self.default,
+                "optional": self.optional,
+                "remaining": self.remaining,
+                "help": self.help
+            }
         )

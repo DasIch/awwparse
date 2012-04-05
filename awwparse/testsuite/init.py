@@ -137,16 +137,21 @@ class OptionTestCase(TestCase):
 
     def test_repr(self):
         self.assert_true(
-            repr(Option("o", String())).startswith("Option('o', Last")
+            repr(Option("o", String())).startswith("Option('o'")
         )
         self.assert_true(
-            repr(Option("option", String())).startswith("Option('option', Last")
+            repr(Option("option", String())).startswith("Option('option'")
         )
-        signature = Last(String())
-        self.assert_equal(
-            repr(Option("o", "option", signature)),
-            "Option('o', 'option', %r, abbreviation_prefix='-', name_prefix='--', help=None)" % signature
+        self.assert_true(
+            repr(Option("o", "option", String()))
+            .startswith("Option('o', 'option'")
         )
+        parts = [
+            repr(Last(String())), "abbreviation_prefix='-'",
+            "name_prefix='--'", "help=None"
+        ]
+        for part in parts:
+            self.assert_in(part, repr(Option("o", String())))
 
 
 class CommandTestCase(TestCase):

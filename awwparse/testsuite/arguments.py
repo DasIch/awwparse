@@ -64,10 +64,13 @@ class ArgumentTestCase(TestCase):
         self.assert_equal(container.usage, u("[foo ...]"))
 
     def test_repr(self):
-        self.assert_equal(
-            repr(Argument()),
-            "Argument(metavar=None, default=missing, optional=False, remaining=False, help=None)"
-        )
+        r = repr(Argument())
+        parts = [
+            "metavar=None", "default=missing", "optional=False",
+            "remaining=False", "help=None"
+        ]
+        for part in parts:
+            self.assert_in(part, r)
 
 
 class LastTestCase(TestCase):
@@ -188,11 +191,12 @@ class NativeStringTestCase(TestCase):
 
 class AnyTestCase(TestCase):
     def test_repr(self):
-        bytes = Bytes()
-        self.assert_equal(
-            repr(Any([Bytes()], "foo")),
-            "Any([%r], 'foo', metavar=None, default=missing, optional=False, remaining=False, help=None)" % bytes
-        )
+        parts = [
+            "[{0!r}]".format(Bytes()), "'foo'", "metavar=None",
+            "default=missing", "optional=False", "remaining=False", "help=None"
+        ]
+        for part in parts:
+            self.assert_in(part, repr(Any([Bytes()], "foo")))
 
 
 class IntegerTestCase(TestCase):
@@ -278,10 +282,12 @@ class ComplexTestCase(TestCase):
 
 class NumberTestCase(TestCase):
     def test_repr(self):
-        self.assert_equal(
-            repr(Number()),
-            "Number(use_decimal=False, metavar=None, default=missing, optional=False, remaining=False, help=None)"
-        )
+        parts = [
+            "use_decimal=False", "metavar=None", "default=missing",
+            "optional=False", "remaining=False", "help=None"
+        ]
+        for part in parts:
+            self.assert_in(part, repr(Number()))
 
     test_parse = make_parse_test(
         Number,
@@ -326,10 +332,13 @@ class BooleanTestCase(TestCase):
 class ChoiceTestCase(TestCase):
     def test_repr(self):
         integer = Integer()
-        self.assert_equal(
-            repr(Choice(integer, [1, 2])),
-            "Choice(%r, [1, 2], metavar=None, help=None)" % integer
-        )
+        r = repr(Choice(integer, [1, 2]))
+        parts = [
+            repr(integer), "[1, 2]", "default=missing", "metavar=None",
+            "help=None", "optional=False", "remaining=False"
+        ]
+        for part in parts:
+            self.assert_in(part, r)
 
     def test_parse(self):
         action = TestCommand(

@@ -17,7 +17,7 @@ from six import u
 
 from awwparse.utils import (
     set_attributes_from_kwargs, missing, force_list, get_terminal_width,
-    golden_split, set_attributes, Signature, iter_mapping
+    golden_split, set_attributes, Signature, iter_mapping, create_repr
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -747,14 +747,14 @@ class Option(object):
         return self.parser.parse_and_store(command, namespace, name, arguments)
 
     def __repr__(self):
-        return "{0}({1}, {2!r}, abbreviation_prefix={3!r}, name_prefix={4!r}, help={5!r})".format(
+        return create_repr(
             self.__class__.__name__,
-            ", ".join(map(repr, filter(None, [self.abbreviation, self.name]))),
-            self.parser,
-            self.abbreviation_prefix,
-            self.name_prefix,
-            self.help
-        )
+            list(filter(None, [self.abbreviation, self.name])) + [self.parser],
+            {
+                "abbreviation_prefix": self.abbreviation_prefix,
+                "name_prefix": self.name_prefix,
+                "help": self.help
+        })
 
 
 class HelpOption(Option):
@@ -782,6 +782,9 @@ class HelpOption(Option):
     def parse(self, command, namespace, name, arguments):
         command.print_help(arguments)
         command.exit()
+
+    def __repr__(self):
+        return "{0}()".format(self.__class__.__name__)
 
 
 class CLI(Command):
