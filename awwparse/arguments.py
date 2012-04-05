@@ -462,3 +462,53 @@ class Choice(Argument):
             self.__class__.__name__, self.argument, self.choices, self.metavar,
             self.help
         )
+
+
+class Mapping(Choice):
+    """
+    Like :class:`Choice` but uses a mapping and returns the value.
+    """
+    def __init__(self, argument, mapping, **kwargs):
+        Argument.__init__(self, **kwargs)
+        self.argument = argument
+        self.mapping = mapping
+
+    def copy(self):
+        return self.__class__(
+            argument=self.argument.copy(),
+            mapping=self.mapping.copy(),
+            default=self.default,
+            optional=self.optional,
+            remaining=self.remaining,
+            metavar=self.metavar,
+            help=self.help
+        )
+
+    def parse_single(self, command, arguments):
+        parsed = self.argument.parse(command, arguments)
+        try:
+            return self.mapping[parsed]
+        except KeyError:
+            raise UserTypeError(u("{argument!r} not on of {choices}").format(
+                argument=repr(parsed),
+                choices=u(", ").join(map(repr, self.mapping))
+            ))
+
+    def parse(self, command, arguments):
+        if self.remaining:
+            result = []
+            while arguments:
+                result.append(self.parse_single(command, arguments))
+            return result
+        try:
+            return self.parse_single(command, arguments)
+        except ArgumentMissing:
+            if self.optional:
+                raise EndOptionParsing()
+            raise
+
+    def __repr__(self):
+        return "{0}({1!r}, {2!r}, metavar={3!r}, default={4!r}, optional={5!r}, remaining={6!r}, help={7!r})".format(
+            self.__class__.__name__, self.argument, self.mapping, self.metavar,
+            self.default, self.optional, self.remaining, self.help
+        )

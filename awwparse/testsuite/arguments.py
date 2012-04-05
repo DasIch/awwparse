@@ -13,8 +13,9 @@ import six
 from six import u
 
 from awwparse import (
-    Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any, Number,
-    Choice, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString
+    Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any,
+    Number, Choice, Boolean, Last, List, Set, Adder, ContainerArgument,
+    NativeString, Mapping
 )
 from awwparse.arguments import parse_argument_signature
 from awwparse.exceptions import UserTypeError
@@ -346,10 +347,33 @@ class ChoiceTestCase(TestCase):
             action.run(["-a", "3"], passthrough_errors=True)
 
 
+class MappingTestCase(TestCase):
+    def test_parse(self):
+        command = TestCommand(
+            options={"foo": Option("o", Mapping(NativeString(), {"spam": 1}))}
+        )
+        with self.assert_raises(UserTypeError):
+            command.run(["-o", "eggs"])
+        self.assert_equal(command.run(["-o", "spam"]), ((), {"foo": 1}))
+
+        command = TestCommand(
+            options={
+                "foo": Option("o", Mapping(
+                    NativeString(), {"spam": 1}, remaining=True
+                ))
+            }
+        )
+        self.assert_equal(
+            command.run(["-o", "spam", "spam"]),
+            ((), {"foo": [1, 1]})
+        )
+
+
+
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
     ChoiceTestCase, BooleanTestCase, ArgumentTestCase, ArgumentsTestCase,
     LastTestCase, ListTestCase, SetTestCase, AdderTestCase,
-    NativeStringTestCase
+    NativeStringTestCase, MappingTestCase
 ])

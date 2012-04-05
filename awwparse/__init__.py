@@ -27,7 +27,7 @@ from awwparse.exceptions import (
 from awwparse.arguments import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
     Argument, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString,
-    parse_argument_signature
+    parse_argument_signature, Mapping
 )
 
 
@@ -832,5 +832,5 @@ class CLI(Command):
 __all__ = [
     "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
-    "Last", "List", "Set", "Adder", "NativeString"
+    "Last", "List", "Set", "Adder", "NativeString", "Mapping"
 ]

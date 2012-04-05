@@ -70,3 +70,6 @@ Arguments
 
 
 .. autoclass:: Choice
+
+
+.. autoclass:: Mapping
