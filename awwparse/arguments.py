@@ -15,7 +15,7 @@ import six
 from six import u
 from six.moves import reduce
 
-from awwparse.utils import missing, force_list
+from awwparse.utils import missing
 from awwparse.exceptions import (
     UserTypeError, ArgumentMissing, EndOptionParsing
 )
@@ -429,30 +429,42 @@ class Choice(Argument):
     Represents a choice between `choices` where the choice is something of
     `argument`.
     """
-    def __init__(self, argument, choices, metavar=None, help=None):
-        Argument.__init__(self, metavar=metavar, help=None)
+    def __init__(self, argument, choices, **kwargs):
+        Argument.__init__(self, **kwargs)
         self.argument = argument
         self.choices = choices
 
     def copy_args(self):
-       return { 
+        args = Argument.copy_args(self)
+        args.update({
             "argument": self.argument.copy(),
-            "choices": self.choices,
-            "metavar": self.metavar,
-            "help": self.help
-        }
+            "choices": self.choices
+        })
+        return args
+
+    def parse_single(self, command, arguments):
+        parsed = self.argument.parse(command, arguments)
+        if parsed not in self.choices:
+            raise UserTypeError(
+                u("{argument!r} not one of {choices}").format(
+                    argument=parsed,
+                    choices=", ".join(map(repr, self.choices))
+                )
+            )
+        return parsed
 
     def parse(self, command, arguments):
-        parsed = self.argument.parse(command, arguments)
-        for choice in force_list(parsed):
-            if choice not in self.choices:
-                raise UserTypeError(
-                    u("{argument!r} not one of {choices}").format(
-                        argument=choice,
-                        choices=", ".join(map(repr, self.choices))
-                    )
-                )
-        return parsed
+        if self.remaining:
+            result = []
+            while arguments:
+                result.append(self.parse_single(command, arguments))
+            return result
+        try:
+            return self.parse_single(command, arguments)
+        except ArgumentMissing:
+            if self.optional:
+                raise EndOptionParsing()
+            raise
 
     def __repr__(self):
         return "{0}({1!r}, {2!r}, metavar={3!r}, help={4!r})".format(
