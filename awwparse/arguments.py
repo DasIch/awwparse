@@ -157,14 +157,17 @@ class Argument(object):
         if self.metavar is None:
             self.metavar = metavar
 
+    def copy_args(self):
+        return {
+            "metavar": self.metavar,
+            "default": self.default,
+            "optional": self.optional,
+            "remaining": self.remaining,
+            "help": self.help
+        }
+
     def copy(self):
-        return self.__class__(
-            metavar=self.metavar,
-            default=self.default,
-            optional=self.optional,
-            remaining=self.remaining,
-            help=self.help
-        )
+        return self.__class__(**self.copy_args())
 
     @property
     def usage(self):
@@ -355,16 +358,13 @@ class Any(ConverterBase):
         self.arguments = arguments
         self.error_message = error_message
 
-    def copy(self):
-        return self.__class__(
-            [argument.copy() for argument in self.arguments],
-            self.error_message,
-            metavar=self.metavar,
-            default=self.default,
-            optional=self.optional,
-            remaining=self.remaining,
-            help=self.help
-        )
+    def copy_args(self):
+        args = ConverterBase.copy_args(self)
+        args.update({
+            "arguments": [argument.copy() for argument in self.arguments],
+            "error_message": self.error_message
+        })
+        return args
 
     def convert(self, string):
         for argument in self.arguments:
@@ -395,15 +395,12 @@ class Number(Any):
         )
         self.use_decimal = use_decimal
 
-    def copy(self):
-        return self.__class__(
-            use_decimal=self.use_decimal,
-            metavar=self.metavar,
-            default=self.default,
-            optional=self.optional,
-            remaining=self.remaining,
-            help=self.help
-        )
+    def copy_args(self):
+        args = Any.copy_args(self)
+        args.update({"use_decimal": self.use_decimal})
+        del args["arguments"]
+        del args["error_message"]
+        return args
 
     def __repr__(self):
         return "{0}(use_decimal={1!r}, metavar={2!r}, default={3!r}, optional={4!r}, remaining={5!r}, help={6!r})".format(
@@ -437,13 +434,13 @@ class Choice(Argument):
         self.argument = argument
         self.choices = choices
 
-    def copy(self):
-        return self.__class__(
-            self.argument.copy(),
-            self.choices,
-            metavar=self.metavar,
-            help=self.help
-        )
+    def copy_args(self):
+       return { 
+            "argument": self.argument.copy(),
+            "choices": self.choices,
+            "metavar": self.metavar,
+            "help": self.help
+        }
 
     def parse(self, command, arguments):
         parsed = self.argument.parse(command, arguments)
@@ -464,7 +461,7 @@ class Choice(Argument):
         )
 
 
-class Mapping(Choice):
+class Mapping(Argument):
     """
     Like :class:`Choice` but uses a mapping and returns the value.
     """
@@ -473,16 +470,13 @@ class Mapping(Choice):
         self.argument = argument
         self.mapping = mapping
 
-    def copy(self):
-        return self.__class__(
-            argument=self.argument.copy(),
-            mapping=self.mapping.copy(),
-            default=self.default,
-            optional=self.optional,
-            remaining=self.remaining,
-            metavar=self.metavar,
-            help=self.help
-        )
+    def copy_args(self):
+        args = Argument.copy_args(self)
+        args.update({
+            "argument": self.argument.copy(),
+            "mapping": self.mapping.copy()
+        })
+        return args
 
     def parse_single(self, command, arguments):
         parsed = self.argument.parse(command, arguments)
