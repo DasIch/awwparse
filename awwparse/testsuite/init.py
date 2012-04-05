@@ -396,6 +396,10 @@ class ArgumentsTestCase(TestCase):
         self.assert_equal(arguments.trace, [])
         self.assert_equal(arguments.next(), "foo")
 
+    def test_nonzero(self):
+        self.assert_true(Arguments([1]))
+        self.assert_false(Arguments([]))
+
     def test_repr(self):
         args = iter(["foo", "bar"])
         arguments = Arguments(args)

@@ -54,6 +54,17 @@ class Arguments(object):
     def rewind(self):
         self._remaining.append(self.trace.pop())
 
+    def __nonzero__(self):
+        try:
+            self.next()
+        except StopIteration:
+            return False
+        self.rewind()
+        return True
+
+    def __bool__(self):
+        return self.__nonzero__()
+
     def __repr__(self):
         return "<{0}({1!r}) {2!r}>".format(
             self.__class__.__name__,
