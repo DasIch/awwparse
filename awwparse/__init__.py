@@ -290,9 +290,13 @@ class Command(object):
         """
         conflicting_options = []
         if option.short in self.option_shorts:
-            conflicting_options.append((self.option_shorts[option.short], "short"))
+            conflicting_options.append(
+                (self.option_shorts[option.short], "short")
+            )
         if option.long in self.option_longs:
-            conflicting_options.append((self.option_longs[option.long], "long"))
+            conflicting_options.append(
+                (self.option_longs[option.long], "long")
+            )
         option = option.copy()
         option.setdefault_metavars(name)
         for conflicting, reason in conflicting_options:
@@ -569,7 +573,9 @@ class Command(object):
             else:
                 if not positional.optional:
                     raise PositionalArgumentMissing(
-                        u("expected {option.metavar}").format(option=positional)
+                        u("expected {option.metavar}").format(
+                            option=positional
+                        )
                     )
         except CLIError as error:
             if passthrough_errors:
@@ -653,7 +659,8 @@ class Option(object):
             arguments = signature[1:]
         else:
             raise TypeError(
-                "expected name or abbreviation as first argument, got {0!r}".format(
+                "expected name or abbreviation as first argument,"
+                "got {0!r}".format(
                     signature[0]
                 )
             )
@@ -663,7 +670,9 @@ class Option(object):
             parser = self.container_argument(*arguments)
             if parser.arguments[0].optional:
                 raise ValueError(
-                    "first argument must not be optional: {0!r}".format(arguments[0])
+                    "first argument must not be optional: {0!r}".format(
+                        arguments[0]
+                    )
                 )
         return name, abbreviation, parser
 
@@ -759,9 +768,13 @@ class HelpOption(Option):
         )
 
     def get_usage(self, using="short"):
-        if using not in set(["short", "long", "both"]):
+        allowed = frozenset(["short", "long", "both"])
+        if using not in allowed:
             raise ValueError(
-                "using has to be 'short', 'long' or 'both'; not {0!r}".format(using)
+                "using has to be {allowed}; not {using_arg!r}".format(
+                    allowed=allowed,
+                    using_arg=using
+                )
             )
         if using == "short":
             return self.short
@@ -802,7 +815,10 @@ class CLI(Command):
 
     def get_usage(self, arguments=None):
         if self.usage is None:
-            return u("{0} {1}").format(self.application_name, Command.get_usage(self))
+            return u("{0} {1}").format(
+                self.application_name,
+                Command.get_usage(self)
+            )
         return self.usage
 
     def run(self, arguments=sys.argv[1:], passthrough_errors=False):
