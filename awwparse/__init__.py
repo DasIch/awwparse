@@ -80,7 +80,7 @@ class Command(object):
     inherited_instance_attributes = frozenset([
         "stdout", "stderr", "exit", "width", "section_indent"
     ])
-    #: A mapping of option names to options.
+    #: A mapping of identifiers to options.
     options = []
     #: A mapping of command names to commands.
     commands = {}
@@ -257,7 +257,7 @@ class Command(object):
         A mapping of option names to option default values.
         """
         return dict(
-            (name, option.default) for name, option in self.options
+            (identifier, option.default) for identifier, option in self.options
             if option.default is not missing
         )
 
@@ -277,9 +277,10 @@ class Command(object):
             result.extend(argument.usage for argument in self.arguments)
         return u(" ").join(result)
 
-    def add_option(self, name, option, force=False, resolve_conflicts=False):
+    def add_option(self, identifier, option, force=False,
+                   resolve_conflicts=False):
         """
-        Adds the `option` with `name` to the command.
+        Adds the `option` with `identifier` to the command.
 
         May raise an :exc:`OptionConflict` exception if the option name or it's
         abbreviation is  identical to those of another option. If `force` is
@@ -298,7 +299,7 @@ class Command(object):
                 (self.option_longs[option.long], "long")
             )
         option = option.copy()
-        option.setdefault_metavars(name)
+        option.setdefault_metavars(identifier)
         for conflicting, reason in conflicting_options:
             if reason == "short":
                 if resolve_conflicts and option.long is not None:
@@ -319,15 +320,16 @@ class Command(object):
                     option, reason, conflicting
                 )
             )
-        self.options.append((name, option))
+        self.options.append((identifier, option))
 
     def add_options(self, options, force=False, resolve_conflicts=False):
         """
         Adds `options` from a given mapping.
         """
-        for name, option in iter_mapping(options):
+        for identifier, option in iter_mapping(options):
             self.add_option(
-                name, option, force=force, resolve_conflicts=resolve_conflicts
+                identifier, option, force=force,
+                resolve_conflicts=resolve_conflicts
             )
 
     def remove_option(self, to_be_removed_option):
@@ -335,7 +337,7 @@ class Command(object):
         Removes the given option.
         """
         self.options = [
-            (name, option) for name, option in self.options
+            (identifier, option) for identifier, option in self.options
             if option is not to_be_removed_option
         ]
 
