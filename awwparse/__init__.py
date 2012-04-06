@@ -78,7 +78,7 @@ class Command(object):
     Represents a command of a :class:`CLI` or another command.
     """
     inherited_instance_attributes = frozenset([
-        "stdin", "stdout", "stderr", "exit", "width", "section_indent"
+        "stdout", "stderr", "exit", "width", "section_indent"
     ])
     #: A mapping of option names to options.
     options = []
@@ -788,15 +788,13 @@ class CLI(Command):
     section_indent = 2
 
     def __init__(self, options=None, commands=None, arguments=None,
-                 application_name=sys.argv[0], usage=None, stdin=sys.stdin,
-                 stdout=sys.stdout, stderr=sys.stderr, exit=sys.exit,
-                 width=None):
+                 application_name=sys.argv[0], usage=None, stdout=sys.stdout,
+                 stderr=sys.stderr, exit=sys.exit, width=None):
         Command.__init__(
             self, options=options, commands=commands, arguments=arguments
         )
         self.application_name = application_name
         self.usage = usage
-        self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
         self.exit = exit
