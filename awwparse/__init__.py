@@ -81,7 +81,7 @@ class Command(object):
         "stdin", "stdout", "stderr", "exit", "width", "section_indent"
     ])
     #: A mapping of option names to options.
-    options = {}
+    options = []
     #: A mapping of command names to commands.
     commands = {}
     #: An arguments signature.
@@ -183,7 +183,9 @@ class Command(object):
         return command
 
     def __init__(self, options=None, commands=None, arguments=None):
-        self.options = {"__awwparse_help": HelpOption()}
+        self.options = [
+            ("__awwparse_help", HelpOption())
+        ]
         self.add_options(self.__class__.options)
         if options is not None:
             self.add_options(options)
@@ -218,7 +220,7 @@ class Command(object):
         """
         A set of all option name prefixes.
         """
-        return set(option.name_prefix for option in self.options.values())
+        return set(option.name_prefix for (_, option) in self.options)
 
     @property
     def abbreviated_option_prefixes(self):
@@ -226,7 +228,7 @@ class Command(object):
         A set of all abbreviated option name prefixes.
         """
         return set(
-            option.abbreviation_prefix for option in self.options.values()
+            option.abbreviation_prefix for (_, option) in self.options
         )
 
     @property
@@ -235,7 +237,7 @@ class Command(object):
         A mapping of all abbreviated option argument names to options.
         """
         return dict(
-            (option.short, option) for option in self.options.values()
+            (option.short, option) for (_, option) in self.options
             if option.short is not None
         )
 
@@ -245,7 +247,7 @@ class Command(object):
         A mapping of all complete option argument names to options.
         """
         return dict(
-            (option.long, option) for option in self.options.values()
+            (option.long, option) for (_, option) in self.options
             if option.long is not None
         )
 
@@ -255,7 +257,7 @@ class Command(object):
         A mapping of option names to option default values.
         """
         return dict(
-            (name, option.default) for name, option in self.options.items()
+            (name, option.default) for name, option in self.options
             if option.default is not missing
         )
 
@@ -265,7 +267,7 @@ class Command(object):
             result.extend(
                 u("[{0}]").format(option.get_usage())
                 for option in sorted(
-                    self.options.values(),
+                    (option for (_, option) in self.options),
                     key=lambda option: option.short is None
                 )
             )
@@ -279,17 +281,14 @@ class Command(object):
         """
         Adds the `option` with `name` to the command.
 
-        May raise an :exc:`OptionConflict` exception if the argument name,
-        the argument name abbreviation or the given `name` is identical to
-        those of another option. If `force` is ``True`` it will ignore the
-        latter kind of conflict and replace the old option with the given one.
-        If `resolve_conflicts` is ``True`` conflicts on argument names and
-        abbreviations thereof will be resolved if possible by removing
-        conflicting attributes.
+        May raise an :exc:`OptionConflict` exception if the option name or it's
+        abbreviation is  identical to those of another option. If `force` is
+        ``True`` it will ignore the latter kind of conflict and replace the old
+        option with the given one.  If `resolve_conflicts` is ``True``
+        conflicts on argument names and abbreviations thereof will be resolved
+        if possible by removing conflicting attributes.
         """
         conflicting_options = []
-        if name in self.options:
-            conflicting_options.append((self.options[name], "name"))
         if option.short in self.option_shorts:
             conflicting_options.append((self.option_shorts[option.short], "short"))
         if option.long in self.option_longs:
@@ -297,9 +296,7 @@ class Command(object):
         option = option.copy()
         option.setdefault_metavars(name)
         for conflicting, reason in conflicting_options:
-            if reason == "name" and force:
-                continue
-            elif reason == "short":
+            if reason == "short":
                 if resolve_conflicts and option.long is not None:
                     option.abbreviation = None
                     continue
@@ -318,7 +315,7 @@ class Command(object):
                     option, reason, conflicting
                 )
             )
-        self.options[name] = option
+        self.options.append((name, option))
 
     def add_options(self, options, force=False, resolve_conflicts=False):
         """
@@ -332,17 +329,11 @@ class Command(object):
     def remove_option(self, to_be_removed_option):
         """
         Removes the given option.
-
-        Raises a :exc:`ValueError` if the option cannot be found.
         """
-        name = None
-        for name, option in self.options.items():
-            if option is to_be_removed_option:
-                break
-        if name is not None:
-            del self.options[name]
-        else:
-            raise ValueError("{0!r} not found".format(to_be_removed_option))
+        self.options = [
+            (name, option) for name, option in self.options
+            if option is not to_be_removed_option
+        ]
 
     def add_command(self, name, command, force=False):
         """
@@ -512,7 +503,7 @@ class Command(object):
             u("Options"),
             (
                 (option.get_usage(using="both"), option.help)
-                for option in self.options.values()
+                for (_, option) in self.options
             )
         )
 
@@ -531,7 +522,7 @@ class Command(object):
             return argument, self.commands[argument], ""
         else:
             modified_argument = argument
-            for name, option in self.options.items():
+            for name, option in self.options:
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
                     return name, option, modified_argument

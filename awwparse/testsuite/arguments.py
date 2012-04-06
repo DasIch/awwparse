@@ -75,7 +75,9 @@ class ArgumentTestCase(TestCase):
 
 class LastTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand(options={"foo": Option("a", Last(String()))})
+        command = TestCommand(
+            options=[("foo", Option("a", Last(String())))]
+        )
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
             ((), {"foo": u("bar")})
@@ -84,7 +86,9 @@ class LastTestCase(TestCase):
 
 class ListTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand(options={"foo": Option("a", List(String()))})
+        command = TestCommand(
+            options=[("foo", Option("a", List(String())))]
+        )
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
             ((), {"foo": [u("foo"), u("bar")]})
@@ -93,7 +97,9 @@ class ListTestCase(TestCase):
 
 class SetTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand(options={"foo": Option("a", Set(String()))})
+        command = TestCommand(
+            options=[("foo", Option("a", Set(String())))]
+        )
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
             ((), {"foo": set([u("foo"), u("bar")])})
@@ -102,7 +108,9 @@ class SetTestCase(TestCase):
 
 class AdderTestCase(TestCase):
     def test_parse_and_store(self):
-        command = TestCommand(options={"foo": Option("a", Adder(Integer()))})
+        command = TestCommand(
+            options=[("foo", Option("a", Adder(Integer())))]
+        )
         self.assert_equal(
             command.run(["-a", "1", "-a", "1"]),
             ((), {"foo": 2})
@@ -342,7 +350,7 @@ class ChoiceTestCase(TestCase):
 
     def test_parse(self):
         action = TestCommand(
-            options={"foo": Option("a", Choice(Integer(), [1, 2]))}
+            options=[("foo", Option("a", Choice(Integer(), [1, 2])))]
         )
         self.assert_equal(
             action.run(["-a", "1"]),
@@ -359,18 +367,20 @@ class ChoiceTestCase(TestCase):
 class MappingTestCase(TestCase):
     def test_parse(self):
         command = TestCommand(
-            options={"foo": Option("o", Mapping(NativeString(), {"spam": 1}))}
+            options=[
+                ("foo", Option("o", Mapping(NativeString(), {"spam": 1})))
+            ]
         )
         with self.assert_raises(UserTypeError):
             command.run(["-o", "eggs"])
         self.assert_equal(command.run(["-o", "spam"]), ((), {"foo": 1}))
 
         command = TestCommand(
-            options={
-                "foo": Option("o", Mapping(
+            options=[
+                ("foo", Option("o", Mapping(
                     NativeString(), {"spam": 1}, remaining=True
-                ))
-            }
+                )))
+            ]
         )
         self.assert_equal(
             command.run(["-o", "spam", "spam"]),
