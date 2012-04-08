@@ -73,13 +73,24 @@ class Arguments(object):
         )
 
 
+class CLIAttribute(object):
+    def __init__(self, attribute, doc=None):
+        self.attribute = attribute
+        self.__doc__ = doc
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        try:
+            return getattr(instance.parent, self.attribute)
+        except AttributeError:
+            raise AttributeError(self.attribute)
+
+
 class Command(object):
     """
     Represents a command of a :class:`CLI` or another command.
     """
-    inherited_instance_attributes = frozenset([
-        "stdout", "stderr", "exit", "width", "section_indent"
-    ])
     #: A mapping of identifiers to options.
     options = []
     #: A mapping of command names to commands.
@@ -209,11 +220,21 @@ class Command(object):
             self._populate_from_signature(self, signature)
 
         for name in dir(self):
-            attribute = getattr(self, name)
+            try:
+                attribute = getattr(self, name)
+            except AttributeError:
+                # maybe raised by properties; can be safely ignored
+                continue
             if isinstance(attribute, Command):
                 if not isinstance(attribute.main, MethodType):
                     attribute.main = partial(attribute.main, self)
                 self.add_command(name, attribute)
+
+    stdout = CLIAttribute("stdout")
+    stderr = CLIAttribute("stderr")
+    exit = CLIAttribute("exit")
+    width = CLIAttribute("width")
+    section_indent = CLIAttribute("section_indent")
 
     @property
     def option_prefixes(self):
@@ -389,18 +410,6 @@ class Command(object):
         """
         for argument in arguments:
             self.add_argument(argument)
-
-    def __getattr__(self, name):
-        missing = object()
-        if name in self.inherited_instance_attributes:
-            attribute =  getattr(self.parent, name, missing)
-            if attribute is not missing:
-                return attribute
-        raise AttributeError(
-            "{0!r} object has no attribute {1!r}".format(
-                self.__class__.__name__, name
-            )
-        )
 
     def copy(self):
         return self.__class__()
