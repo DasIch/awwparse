@@ -178,16 +178,7 @@ class Argument(object):
             return argument
 
     def __repr__(self):
-        return create_repr(
-            self.__class__.__name__,
-            [],
-            {
-                "metavar": self.metavar,
-                "optional": self.optional,
-                "remaining": self.remaining,
-                "help": self.help
-            }
-        )
+        return create_repr(self.__class__.__name__, [], self.copy_args())
 
 
 class EncodingArgument(Argument):
@@ -365,12 +356,7 @@ class Any(ConverterBase):
         return create_repr(
             self.__class__.__name__,
             [self.arguments, self.error_message],
-            {
-                "metavar": self.metavar,
-                "optional": self.optional,
-                "remaining": self.remaining,
-                "help": self.help
-            }
+            ConverterBase.copy_args(self)
         )
 
 
@@ -395,17 +381,7 @@ class Number(Any):
         return args
 
     def __repr__(self):
-        return create_repr(
-            self.__class__.__name__,
-            [],
-            {
-                "use_decimal": self.use_decimal,
-                "metavar": self.metavar,
-                "optional": self.optional,
-                "remaining": self.remaining,
-                "help": self.help
-            }
-        )
+        return create_repr(self.__class__.__name__, [], self.copy_args())
 
 
 class Boolean(Argument):
@@ -429,17 +405,7 @@ class Boolean(Argument):
         return self.store
 
     def __repr__(self):
-        return create_repr(
-            self.__class__.__name__,
-            [],
-            {
-                "metavar": self.metavar,
-                "optional": self.optional,
-                "remaining": self.remaining,
-                "help": self.help,
-                "store": self.store
-            }
-        )
+        return create_repr(self.__class__.__name__, [], self.copy_args())
 
 
 class Choice(Argument):
@@ -488,12 +454,7 @@ class Choice(Argument):
         return create_repr(
             self.__class__.__name__,
             [self.argument, self.choices],
-            {
-                "metavar": self.metavar,
-                "optional": self.optional,
-                "remaining": self.remaining,
-                "help": self.help
-            }
+            Argument.copy_args(self)
         )
 
 
