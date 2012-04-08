@@ -272,16 +272,6 @@ class Command(object):
             if option.long is not None
         )
 
-    @property
-    def defaults(self):
-        """
-        A mapping of option names to option default values.
-        """
-        return dict(
-            (identifier, option.default) for identifier, option in self.options
-            if option.default is not missing
-        )
-
     def get_usage(self, arguments=None):
         result = [] if arguments is None else arguments.trace[:-1]
         if self.options:
@@ -549,7 +539,7 @@ class Command(object):
             arguments = Arguments(arguments)
         expected_positionals = iter(self.arguments)
         args = [] if default_args is None else default_args
-        kwargs = self.defaults.copy()
+        kwargs = {}
         if default_kwargs:
             kwargs.update(default_kwargs)
         try:
@@ -704,13 +694,6 @@ class Option(object):
         if self.name is None:
             return None
         return self.name_prefix + self.name
-
-    @property
-    def default(self):
-        """
-        The default value for this option.
-        """
-        return self.parser.default
 
     def setdefault_metavars(self, metavar):
         self.parser.setdefault_metavars(metavar)

@@ -8,14 +8,12 @@
 """
 import locale
 import decimal
-from operator import attrgetter
-from itertools import takewhile
 
 import six
 from six import u
 from six.moves import reduce
 
-from awwparse.utils import missing, create_repr
+from awwparse.utils import create_repr
 from awwparse.exceptions import (
     UserTypeError, ArgumentMissing, EndOptionParsing
 )
@@ -40,18 +38,6 @@ def parse_argument_signature(arguments, require_metavar=False, _root=True):
 class ContainerArgument(object):
     def __init__(self, *arguments):
         self.arguments = parse_argument_signature(arguments)
-
-    @property
-    def default(self):
-        if len(self.arguments) == 1:
-            return self.arguments[0].default
-        return map(
-            attrgetter("default"),
-            takewhile(
-                lambda argument: not argument.optional and argument.default is not missing,
-                self.arguments
-            )
-        ) or missing
 
     @property
     def usage(self):
@@ -142,10 +128,9 @@ class Adder(ContainerArgument):
 
 
 class Argument(object):
-    def __init__(self, metavar=None, default=missing, optional=False,
-                 remaining=False, help=None):
+    def __init__(self, metavar=None, optional=False, remaining=False,
+                 help=None):
         self.metavar = metavar
-        self.default = default
         self.optional = optional
         self.remaining = remaining
         self.help = help
@@ -157,7 +142,6 @@ class Argument(object):
     def copy_args(self):
         return {
             "metavar": self.metavar,
-            "default": self.default,
             "optional": self.optional,
             "remaining": self.remaining,
             "help": self.help
@@ -199,7 +183,6 @@ class Argument(object):
             [],
             {
                 "metavar": self.metavar,
-                "default": self.default,
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help
@@ -384,7 +367,6 @@ class Any(ConverterBase):
             [self.arguments, self.error_message],
             {
                 "metavar": self.metavar,
-                "default": self.default,
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help
@@ -419,7 +401,6 @@ class Number(Any):
             {
                 "use_decimal": self.use_decimal,
                 "metavar": self.metavar,
-                "default": self.default,
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help
@@ -432,14 +413,33 @@ class Boolean(Argument):
     Represents a boolean.
     """
     def __init__(self, default=False, **kwargs):
-        Argument.__init__(self, default=default, **kwargs)
+        Argument.__init__(self, **kwargs)
+        self.default = default
 
     @property
     def usage(self):
         return u("")
 
+    def copy_args(self):
+        args = Argument.copy_args(self)
+        args.update({"default": self.default})
+        return args
+
     def parse(self, command, arguments):
         return not self.default
+
+    def __repr__(self):
+        return create_repr(
+            self.__class__.__name__,
+            [],
+            {
+                "metavar": self.metavar,
+                "optional": self.optional,
+                "remaining": self.remaining,
+                "help": self.help,
+                "default": self.default
+            }
+        )
 
 
 class Choice(Argument):
@@ -490,7 +490,6 @@ class Choice(Argument):
             [self.argument, self.choices],
             {
                 "metavar": self.metavar,
-                "default": self.default,
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help
@@ -544,7 +543,6 @@ class Mapping(Argument):
             [self.argument, self.mapping],
             {
                 "metavar": self.metavar,
-                "default": self.default,
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help

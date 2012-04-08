@@ -67,22 +67,6 @@ class OptionTestCase(TestCase):
                 ((), {"option": args[1:i] or [missing]})
             )
 
-    def test_default(self):
-        command = TestCommand(
-            options=[("option", Option("o", String()))]
-        )
-        self.assert_equal(command.options[-1][1].default, missing)
-        self.assert_equal(command.run([]), ((), {}))
-
-        command = TestCommand(
-            {"option": Option("o", String(default=u("foobar")))}
-        )
-        self.assert_equal(command.options[-1][1].default, u("foobar"))
-        self.assert_equal(
-            command.run([]),
-            ((), {"option": u("foobar")})
-        )
-
     def test_get_usage(self):
         option = Option("a", String(metavar=u("foo")))
         self.assert_equal(option.get_usage(), "-a foo")

@@ -66,8 +66,7 @@ class ArgumentTestCase(TestCase):
     def test_repr(self):
         r = repr(Argument())
         parts = [
-            "metavar=None", "default=missing", "optional=False",
-            "remaining=False", "help=None"
+            "metavar=None", "optional=False", "remaining=False", "help=None"
         ]
         for part in parts:
             self.assert_in(part, r)
@@ -201,7 +200,7 @@ class AnyTestCase(TestCase):
     def test_repr(self):
         parts = [
             "[{0!r}]".format(Bytes()), "'foo'", "metavar=None",
-            "default=missing", "optional=False", "remaining=False", "help=None"
+            "optional=False", "remaining=False", "help=None"
         ]
         for part in parts:
             self.assert_in(part, repr(Any([Bytes()], "foo")))
@@ -291,8 +290,8 @@ class ComplexTestCase(TestCase):
 class NumberTestCase(TestCase):
     def test_repr(self):
         parts = [
-            "use_decimal=False", "metavar=None", "default=missing",
-            "optional=False", "remaining=False", "help=None"
+            "use_decimal=False", "metavar=None", "optional=False",
+            "remaining=False", "help=None"
         ]
         for part in parts:
             self.assert_in(part, repr(Number()))
@@ -315,11 +314,7 @@ class NumberTestCase(TestCase):
 class BooleanTestCase(TestCase):
     def test_parse(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", Boolean()))
-        self.assert_equal(
-            command.run([]),
-            ((), {"foo": False})
-        )
+        command.add_option("foo", Option("a", Boolean(default=False)))
         self.assert_equal(
             command.run(["-a"]),
             ((), {"foo": True})
@@ -327,12 +322,8 @@ class BooleanTestCase(TestCase):
 
         command.add_option("bar", Option("b", Boolean(default=True)))
         self.assert_equal(
-            command.run([]),
-            ((), {"foo": False, "bar": True})
-        )
-        self.assert_equal(
             command.run(["-b"]),
-            ((), {"foo": False, "bar": False})
+            ((), {"bar": False})
         )
 
 
@@ -342,8 +333,8 @@ class ChoiceTestCase(TestCase):
         integer = Integer()
         r = repr(Choice(integer, [1, 2]))
         parts = [
-            repr(integer), "[1, 2]", "default=missing", "metavar=None",
-            "help=None", "optional=False", "remaining=False"
+            repr(integer), "[1, 2]", "metavar=None", "help=None",
+            "optional=False", "remaining=False"
         ]
         for part in parts:
             self.assert_in(part, r)
