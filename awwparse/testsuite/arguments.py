@@ -314,13 +314,13 @@ class NumberTestCase(TestCase):
 class BooleanTestCase(TestCase):
     def test_parse(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", Boolean(default=False)))
+        command.add_option("foo", Option("a", Boolean()))
         self.assert_equal(
             command.run(["-a"]),
             ((), {"foo": True})
         )
 
-        command.add_option("bar", Option("b", Boolean(default=True)))
+        command.add_option("bar", Option("b", Boolean(store=False)))
         self.assert_equal(
             command.run(["-b"]),
             ((), {"bar": False})

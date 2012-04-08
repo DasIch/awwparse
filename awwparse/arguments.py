@@ -412,9 +412,9 @@ class Boolean(Argument):
     """
     Represents a boolean.
     """
-    def __init__(self, default=False, **kwargs):
+    def __init__(self, store=True, **kwargs):
         Argument.__init__(self, **kwargs)
-        self.default = default
+        self.store = store
 
     @property
     def usage(self):
@@ -422,11 +422,11 @@ class Boolean(Argument):
 
     def copy_args(self):
         args = Argument.copy_args(self)
-        args.update({"default": self.default})
+        args.update({"store": self.store})
         return args
 
     def parse(self, command, arguments):
-        return not self.default
+        return self.store
 
     def __repr__(self):
         return create_repr(
@@ -437,7 +437,7 @@ class Boolean(Argument):
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help,
-                "default": self.default
+                "store": self.store
             }
         )
 
