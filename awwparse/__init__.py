@@ -16,8 +16,8 @@ from collections import deque
 from six import u
 
 from awwparse.utils import (
-    set_attributes_from_kwargs, missing, force_list, get_terminal_width,
-    golden_split, set_attributes, Signature, iter_mapping, create_repr
+    set_attributes_from_kwargs, force_list, get_terminal_width, golden_split,
+    set_attributes, Signature, iter_mapping, create_repr
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
