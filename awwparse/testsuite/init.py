@@ -28,7 +28,7 @@ class OptionTestCase(TestCase):
         class TestOption(Option):
             container_argument = List
 
-        command = TestCommand(options=[("foo", TestOption("a", String()))])
+        command = TestCommand(options=[("foo", TestOption("-a", String()))])
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
             ((), {"foo": [u("foo"), u("bar")]})
@@ -36,14 +36,14 @@ class OptionTestCase(TestCase):
 
     def test_signature(self):
         command = TestCommand(
-            options=[("option", Option("o", String(), String(), String()))]
+            options=[("option", Option("-o", String(), String(), String()))]
         )
         for args in [["-o"], ["-o", "foo"], ["-o", "foo", "bar"]]:
             with self.assert_raises(ArgumentMissing):
                 command.run(args, passthrough_errors=True)
 
         command = TestCommand(
-            options=[("option", Option("o", String(), [String(), String()]))]
+            options=[("option", Option("-o", String(), [String(), String()]))]
         )
         self.assert_equal(
             command.run(["-o", "a"]),
@@ -58,7 +58,7 @@ class OptionTestCase(TestCase):
                 command.run(args, passthrough_errors=True)
 
         command = TestCommand(
-            options=[("option", Option("o", String(), [String(), [String()]]))]
+            options=[("option", Option("-o", String(), [String(), [String()]]))]
         )
         args = ["-o", "a", "b", "c"]
         for i in range(2, len(args) + 1):
@@ -68,54 +68,18 @@ class OptionTestCase(TestCase):
             )
 
     def test_get_usage(self):
-        option = Option("a", String(metavar=u("foo")))
+        option = Option("-a", String(metavar=u("foo")))
         self.assert_equal(option.get_usage(), "-a foo")
         self.assert_equal(option.get_usage(using="long"), u("-a foo"))
         self.assert_equal(option.get_usage(using="both"), u("-a foo"))
 
-        option = Option("a", "abc", String(metavar=u("foo")))
+        option = Option("-a", "--abc", String(metavar=u("foo")))
         self.assert_equal(option.get_usage(), "-a foo")
         self.assert_equal(option.get_usage(using="long"), u("--abc foo"))
         self.assert_equal(option.get_usage(using="both"), u("-a foo, --abc foo"))
 
-    def test_abbreviation_prefix(self):
-        command = TestCommand(
-            options=[("option", Option("o", String()))]
-        )
-        self.assert_equal(command.options[-1][1].abbreviation_prefix, "-")
-        self.assert_true(command.options[-1][1].matches("-o"))
-
-        command = TestCommand(
-            options=[
-                ("option", Option("o", String(), abbreviation_prefix="+"))
-            ]
-        )
-        self.assert_equal(command.options[-1][1].abbreviation_prefix, "+")
-        self.assert_true(command.options[-1][1].matches("+o"))
-        self.assert_equal(
-            command.run(["+o", "foo"]),
-            ((), {"option": u("foo")})
-        )
-
-    def test_name_prefix(self):
-        command = TestCommand(
-            options=[("option", Option("option", String()))]
-        )
-        self.assert_equal(command.options[-1][1].name_prefix, "--")
-        self.assert_true(command.options[-1][1].matches("--option"))
-
-        command = TestCommand(
-            options=[("option", Option("option", String(), name_prefix="++"))]
-        )
-        self.assert_equal(command.options[-1][1].name_prefix, "++")
-        self.assert_true(command.options[-1][1].matches("++option"))
-        self.assert_equal(
-            command.run(["++option", "foo"]),
-            ((), {"option": u("foo")})
-        )
-
     def test_matches(self):
-        option = Option("o", "option", String())
+        option = Option("-o", "--option", String())
         self.assert_equal(option.matches("-a"), (False, "-a"))
         self.assert_equal(option.matches("-o"), (True, ""))
         self.assert_equal(option.matches("--asd"), (False, "--asd"))
@@ -123,21 +87,18 @@ class OptionTestCase(TestCase):
 
     def test_repr(self):
         self.assert_true(
-            repr(Option("o", String())).startswith("Option('o'")
+            repr(Option("-o", String())).startswith("Option('-o'")
         )
         self.assert_true(
-            repr(Option("option", String())).startswith("Option('option'")
+            repr(Option("--option", String())).startswith("Option('--option'")
         )
         self.assert_true(
-            repr(Option("o", "option", String()))
-            .startswith("Option('o', 'option'")
+            repr(Option("-o", "--option", String()))
+            .startswith("Option('-o', '--option'")
         )
-        parts = [
-            repr(Last(String())), "abbreviation_prefix='-'",
-            "name_prefix='--'", "help=None"
-        ]
+        parts = [repr(Last(String())), "help=None"]
         for part in parts:
-            self.assert_in(part, repr(Option("o", String())))
+            self.assert_in(part, repr(Option("-o", String())))
 
 
 class CommandTestCase(TestCase):
@@ -200,14 +161,14 @@ class CommandTestCase(TestCase):
 
     def test_option_shorts_and_longs(self):
         command = Command()
-        command.add_option("foo", Option("a", String()))
-        command.add_option("bar", Option("abc", String()))
+        command.add_option("foo", Option("-a", String()))
+        command.add_option("bar", Option("--abc", String()))
         self.assert_not_in(None, command.option_shorts)
         self.assert_not_in(None, command.option_longs)
 
     def test_get_usage(self):
         command = Command()
-        command.add_option("foo", Option("o", String()))
+        command.add_option("foo", Option("-o", String()))
         self.assert_equal(command.get_usage(), u("[-h] [-o foo]"))
 
         command.add_command("bar", Command())
@@ -218,52 +179,52 @@ class CommandTestCase(TestCase):
 
     def test_add_option(self):
         command = Command()
-        a = Option("a", "foobar", String())
+        a = Option("-a", "--foobar", String())
         command.add_option("foo", a)
         with self.assert_raises(OptionConflict):
             command.add_option("bar", a)
         with self.assert_raises(OptionConflict):
-            command.add_option("baz", Option("foobar", String()))
+            command.add_option("baz", Option("--foobar", String()))
 
         command = Command()
-        command.add_option("foo", Option("a", "asd", String()))
-        command.add_option("bar", Option("b", "qwe", String()))
+        command.add_option("foo", Option("-a", "--asd", String()))
+        command.add_option("bar", Option("-b", "--qwe", String()))
         command.add_option(
             "spam",
-            Option("a", "zxc", String()),
+            Option("-a", "--zxc", String()),
             resolve_conflicts=True
         )
-        self.assert_equal(command.option_shorts["-a"].name, "asd")
+        self.assert_equal(command.option_shorts["-a"].long, "--asd")
         command.add_option(
             "eggs",
-            Option("c", "zxc", String()),
+            Option("-c", "--zxc", String()),
             resolve_conflicts=True
         )
-        self.assert_is(command.option_shorts["-c"].name, None)
+        self.assert_is(command.option_shorts["-c"].long, None)
 
         with self.assert_raises(OptionConflict):
             command.add_option(
                 "blubb",
-                Option("a", "asd", String()),
+                Option("-a", "--asd", String()),
                 resolve_conflicts=True
             )
         command.add_option(
             "blubb",
-            Option("a", "asd", String()),
+            Option("-a", "--asd", String()),
             resolve_conflicts=True,
             force=True
         )
         command.add_option(
             "bla",
-            Option("a", "asd", String()),
+            Option("-a", "--asd", String()),
             force=True
         )
 
     def test_multiple_options_for_name(self):
         command = TestCommand(
             options=[
-                ("foo", Option("a", List(Integer()))),
-                ("foo", Option("b", List(Integer())))
+                ("foo", Option("-a", List(Integer()))),
+                ("foo", Option("-b", List(Integer())))
             ]
         )
         self.assert_equal(
@@ -305,15 +266,15 @@ class CommandTestCase(TestCase):
             Command().run(["unexpected"], passthrough_errors=True)
 
         command = Command()
-        command.add_option("foo", Option("b", String()))
+        command.add_option("foo", Option("-b", String()))
         with self.assert_raises(UnexpectedArgument):
             command.run(["-a"], passthrough_errors=True)
 
     def test_main(self):
         class TestCommand(Command):
             options = {
-                "foo": Option("a", String()),
-                "bar": Option("b", String())
+                "foo": Option("-a", String()),
+                "bar": Option("-b", String())
             }
 
             def main(self, foo, bar):
@@ -324,9 +285,9 @@ class CommandTestCase(TestCase):
     def test_multiple_abbreviations(self):
         command = TestCommand(
             options=[
-                ("a", Option("a", String())),
-                ("b", Option("b", String())),
-                ("c", Option("c", String()))
+                ("a", Option("-a", String())),
+                ("b", Option("-b", String())),
+                ("c", Option("-c", String()))
             ]
         )
         self.assert_equal(
@@ -359,7 +320,7 @@ class CommandTestCase(TestCase):
                 assert kwargs["foo"] == u("bar")
 
         class B(Command):
-            options = {"foo": Option("a", String())}
+            options = {"foo": Option("-a", String())}
             commands = {"spam": A()}
 
         B().run(["-a", "bar", "spam"])
@@ -459,7 +420,7 @@ class CLITestCase(TestCase):
         ))
 
         cli.stdout = stringio = StringIO()
-        cli.add_option("bar", Option("a", String()))
+        cli.add_option("bar", Option("-a", String()))
         cli.print_help()
         self.assert_equal(stringio.getvalue(), u(
             "Usage: app [-h] [-a bar] foo\n"
@@ -499,7 +460,7 @@ class CLITestCase(TestCase):
             stderr=stringio,
             exit=exit,
             width=40,
-            options=[("foo", Option("o", Integer()))]
+            options=[("foo", Option("-o", Integer()))]
         )
         with self.assert_raises(AssertionError) as error:
             cli.run(["-o", "foo"])
@@ -529,7 +490,7 @@ class CLITestCase(TestCase):
             width=40,
             commands={
                 "spam": Command(
-                    options=[("foo", Option("o", String()))]
+                    options=[("foo", Option("-o", String()))]
                 )
             }
         )

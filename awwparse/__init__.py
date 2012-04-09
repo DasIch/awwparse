@@ -11,6 +11,7 @@ import sys
 import textwrap
 from types import MethodType
 from functools import partial
+from itertools import takewhile
 from collections import deque
 
 from six import u
@@ -132,7 +133,7 @@ class Command(object):
             if isinstance(annotation, (Argument, ContainerArgument)):
                 command.add_option(
                     name,
-                    Option(name[0], name[1:], annotation),
+                    Option("-" + name[0], "--" + name[1:], annotation),
                     resolve_conflicts=True
                 )
             elif isinstance(annotation, Option):
@@ -314,14 +315,14 @@ class Command(object):
         for conflicting, reason in conflicting_options:
             if reason == "short":
                 if resolve_conflicts and option.long is not None:
-                    option.abbreviation = None
+                    option.short = None
                     continue
                 if force:
                     self.remove_option(conflicting)
                     continue
             elif reason == "long":
                 if resolve_conflicts and option.short is not None:
-                    option.name = None
+                    option.long = None
                     continue
                 if force:
                     self.remove_option(conflicting)
@@ -617,26 +618,22 @@ class Option(object):
 
     Other optional parameters are:
 
-    :param abbreviation_prefix: Prefix used for abbreviated option names
-                                (default: ``"-"``).
-    :param name_prefix: Prefix used for option names (default: ``"--"``).
     :param help: A help message explaining the option in detail
                  (default: ``None``).
     """
     container_argument = Last
+    prefix_chars = frozenset(["-", "+"])
 
     def __init__(self, *signature, **kwargs):
-        name, abbreviation, parser = self._parse_signature(signature)
-        if abbreviation is None and name is None:
-            raise TypeError("An abbreviation or a name has to be passed")
-        if abbreviation is not None and len(abbreviation) != 1:
-            raise ValueError("An abbreviation has to be one character long")
-        self.name = name
-        self.abbreviation = abbreviation
+        short, long, parser = self._parse_signature(signature)
+        if short is None and long is None:
+            raise TypeError("A short or a long has to be passed")
+        if short is not None and len(short) != 2:
+            raise ValueError("A short has to be two characters long")
+        self.short = short
+        self.long = long
         self.parser = parser
         set_attributes_from_kwargs(self, kwargs, {
-            "abbreviation_prefix": "-",
-            "name_prefix": "--",
             "help": None
         })
 
@@ -647,20 +644,20 @@ class Option(object):
                 ", got {0}".format(len(signature))
             )
 
-        name = abbreviation = None
+        short = long = None
         if isinstance(signature[0], str) and isinstance(signature[1], str):
-            abbreviation = signature[0]
-            name = signature[1]
+            short = signature[0]
+            long = signature[1]
             arguments = signature[2:]
         elif isinstance(signature[0], str):
-            if len(signature[0]) == 1:
-                abbreviation = signature[0]
+            if len(signature[0]) == 2:
+                short = signature[0]
             else:
-                name = signature[0]
+                long = signature[0]
             arguments = signature[1:]
         else:
             raise TypeError(
-                "expected name or abbreviation as first argument,"
+                "expected short or long as first argument,"
                 "got {0!r}".format(
                     signature[0]
                 )
@@ -675,25 +672,7 @@ class Option(object):
                         arguments[0]
                     )
                 )
-        return name, abbreviation, parser
-
-    @property
-    def short(self):
-        """
-        The abbreviated option name including prefix.
-        """
-        if self.abbreviation is None:
-            return None
-        return self.abbreviation_prefix + self.abbreviation
-
-    @property
-    def long(self):
-        """
-        The option name including prefix.
-        """
-        if self.name is None:
-            return None
-        return self.name_prefix + self.name
+        return short, long, parser
 
     def setdefault_metavars(self, metavar):
         self.parser.setdefault_metavars(metavar)
@@ -701,11 +680,9 @@ class Option(object):
     def copy(self):
         option = self.__class__.__new__(self.__class__)
         set_attributes(option, {
-            "name": self.name,
-            "abbreviation": self.abbreviation,
+            "short": self.short,
+            "long": self.long,
             "parser": self.parser.copy(),
-            "abbreviation_prefix": self.abbreviation_prefix,
-            "name_prefix": self.name_prefix,
             "help": self.help
         })
         return option
@@ -728,12 +705,16 @@ class Option(object):
             self.parser.usage
         ).strip()
 
+    def get_prefix(self, argument):
+        return "".join(takewhile(lambda c: c in self.prefix_chars, argument))
+
     def matches(self, argument):
         if argument == self.long:
             return True, ""
         elif self.short is not None and argument.startswith(self.short):
+            prefix = self.get_prefix(self.short)
             stripped = argument.lstrip(self.short)
-            modified = self.abbreviation_prefix + stripped if stripped else ""
+            modified = prefix + stripped if stripped else ""
             return True, modified
         return False, argument
 
@@ -743,10 +724,8 @@ class Option(object):
     def __repr__(self):
         return create_repr(
             self.__class__.__name__,
-            list(filter(None, [self.abbreviation, self.name])) + [self.parser],
+            list(filter(None, [self.short, self.long])) + [self.parser],
             {
-                "abbreviation_prefix": self.abbreviation_prefix,
-                "name_prefix": self.name_prefix,
                 "help": self.help
         })
 
@@ -755,8 +734,8 @@ class HelpOption(Option):
     def __init__(self):
         Option.__init__(
             self,
-            "h",
-            "help",
+            "-h",
+            "--help",
             NativeString(remaining=True),
             help=u("Show this message")
         )

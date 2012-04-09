@@ -75,7 +75,7 @@ class ArgumentTestCase(TestCase):
 class LastTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand(
-            options=[("foo", Option("a", Last(String())))]
+            options=[("foo", Option("-a", Last(String())))]
         )
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
@@ -86,7 +86,7 @@ class LastTestCase(TestCase):
 class ListTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand(
-            options=[("foo", Option("a", List(String())))]
+            options=[("foo", Option("-a", List(String())))]
         )
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
@@ -97,7 +97,7 @@ class ListTestCase(TestCase):
 class SetTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand(
-            options=[("foo", Option("a", Set(String())))]
+            options=[("foo", Option("-a", Set(String())))]
         )
         self.assert_equal(
             command.run(["-a", "foo", "-a", "bar"]),
@@ -108,7 +108,7 @@ class SetTestCase(TestCase):
 class AdderTestCase(TestCase):
     def test_parse_and_store(self):
         command = TestCommand(
-            options=[("foo", Option("a", Adder(Integer())))]
+            options=[("foo", Option("-a", Adder(Integer())))]
         )
         self.assert_equal(
             command.run(["-a", "1", "-a", "1"]),
@@ -119,21 +119,21 @@ class AdderTestCase(TestCase):
 def make_parse_test(argument, single, remaining, optional):
     def parse_test(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", argument()))
+        command.add_option("foo", Option("-a", argument()))
         for args, expected in single:
             self.assert_equal(
                 command.run(["-a"] + args),
                 ((), {"foo": expected})
             )
 
-        command.add_option("bar", Option("b", argument(remaining=True)))
+        command.add_option("bar", Option("-b", argument(remaining=True)))
         for args, expected in remaining:
             self.assert_equal(
                 command.run(["-b"] + args, passthrough_errors=True),
                 ((), {"bar": expected})
             )
 
-        command.add_option("baz", Option("c", argument(), argument(optional=True)))
+        command.add_option("baz", Option("-c", argument(), argument(optional=True)))
         for args, expected in optional:
             self.assert_equal(
                 command.run(["-c"] + args, passthrough_errors=True),
@@ -314,13 +314,13 @@ class NumberTestCase(TestCase):
 class BooleanTestCase(TestCase):
     def test_parse(self):
         command = TestCommand()
-        command.add_option("foo", Option("a", Boolean()))
+        command.add_option("foo", Option("-a", Boolean()))
         self.assert_equal(
             command.run(["-a"]),
             ((), {"foo": True})
         )
 
-        command.add_option("bar", Option("b", Boolean(store=False)))
+        command.add_option("bar", Option("-b", Boolean(store=False)))
         self.assert_equal(
             command.run(["-b"]),
             ((), {"bar": False})
@@ -341,7 +341,7 @@ class ChoiceTestCase(TestCase):
 
     def test_parse(self):
         action = TestCommand(
-            options=[("foo", Option("a", Choice(Integer(), [1, 2])))]
+            options=[("foo", Option("-a", Choice(Integer(), [1, 2])))]
         )
         self.assert_equal(
             action.run(["-a", "1"]),
@@ -359,7 +359,7 @@ class MappingTestCase(TestCase):
     def test_parse(self):
         command = TestCommand(
             options=[
-                ("foo", Option("o", Mapping(NativeString(), {"spam": 1})))
+                ("foo", Option("-o", Mapping(NativeString(), {"spam": 1})))
             ]
         )
         with self.assert_raises(UserTypeError):
@@ -368,7 +368,7 @@ class MappingTestCase(TestCase):
 
         command = TestCommand(
             options=[
-                ("foo", Option("o", Mapping(
+                ("foo", Option("-o", Mapping(
                     NativeString(), {"spam": 1}, remaining=True
                 )))
             ]
