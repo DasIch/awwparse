@@ -14,8 +14,7 @@ from six import u
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any,
-    Number, Choice, Boolean, Last, List, Set, Adder, ContainerArgument,
-    NativeString, Mapping
+    Number, Choice, Boolean, NativeString, Mapping
 )
 from awwparse.arguments import parse_argument_signature
 from awwparse.exceptions import UserTypeError
@@ -40,29 +39,6 @@ class ArgumentsTestCase(TestCase):
 
 
 class ArgumentTestCase(TestCase):
-    def test_usage(self):
-        container = ContainerArgument(Bytes(metavar=u("foo")))
-        self.assert_equal(container.usage, u("foo"))
-
-        container = ContainerArgument(Bytes(metavar=u("foo"), optional=True))
-        self.assert_equal(container.usage, u("[foo]"))
-
-        container = ContainerArgument(
-            Bytes(metavar=u("foo")),
-            Bytes(metavar=u("bar"), optional=True)
-        )
-        self.assert_equal(container.usage, u("foo [bar]"))
-
-        container = ContainerArgument(
-            Bytes(metavar=("foo")),
-            Bytes(metavar=("bar"), optional=True),
-            Bytes(metavar=("baz"))
-        )
-        self.assert_equal(container.usage, u("foo [bar baz]"))
-
-        container = ContainerArgument(Bytes(metavar=u("foo"), remaining=True))
-        self.assert_equal(container.usage, u("[foo ...]"))
-
     def test_repr(self):
         r = repr(Argument())
         parts = [
@@ -70,51 +46,6 @@ class ArgumentTestCase(TestCase):
         ]
         for part in parts:
             self.assert_in(part, r)
-
-
-class LastTestCase(TestCase):
-    def test_parse_and_store(self):
-        command = TestCommand(
-            options=[("foo", Option("-a", Last(String())))]
-        )
-        self.assert_equal(
-            command.run(["-a", "foo", "-a", "bar"]),
-            ((), {"foo": u("bar")})
-        )
-
-
-class ListTestCase(TestCase):
-    def test_parse_and_store(self):
-        command = TestCommand(
-            options=[("foo", Option("-a", List(String())))]
-        )
-        self.assert_equal(
-            command.run(["-a", "foo", "-a", "bar"]),
-            ((), {"foo": [u("foo"), u("bar")]})
-        )
-
-
-class SetTestCase(TestCase):
-    def test_parse_and_store(self):
-        command = TestCommand(
-            options=[("foo", Option("-a", Set(String())))]
-        )
-        self.assert_equal(
-            command.run(["-a", "foo", "-a", "bar"]),
-            ((), {"foo": set([u("foo"), u("bar")])})
-        )
-
-
-class AdderTestCase(TestCase):
-    def test_parse_and_store(self):
-        command = TestCommand(
-            options=[("foo", Option("-a", Adder(Integer())))]
-        )
-        self.assert_equal(
-            command.run(["-a", "1", "-a", "1"]),
-            ((), {"foo": 2})
-        )
-
 
 def make_parse_test(argument, single, remaining, optional):
     def parse_test(self):
@@ -384,6 +315,5 @@ suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
     ChoiceTestCase, BooleanTestCase, ArgumentTestCase, ArgumentsTestCase,
-    LastTestCase, ListTestCase, SetTestCase, AdderTestCase,
     NativeStringTestCase, MappingTestCase
 ])

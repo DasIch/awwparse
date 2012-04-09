@@ -11,7 +11,6 @@ import decimal
 
 import six
 from six import u
-from six.moves import reduce
 
 from awwparse.utils import create_repr
 from awwparse.exceptions import (
@@ -33,98 +32,6 @@ def parse_argument_signature(arguments, require_metavar=False, _root=True):
                 argument, require_metavar=require_metavar, _root=False
             ))
     return result
-
-
-class ContainerArgument(object):
-    def __init__(self, *arguments):
-        self.arguments = parse_argument_signature(arguments)
-
-    @property
-    def usage(self):
-        def step(acc, next):
-            root, current = acc
-            if next.optional:
-                current.append([next])
-                current = current[-1]
-            else:
-                current.append(next)
-            return root, current
-
-        def render(tree, _root=True):
-            if isinstance(tree, Argument):
-                return tree.usage
-            else:
-                nodes = u(" ").join(render(node, _root=False) for node in tree)
-                if _root:
-                    return nodes
-                return u("[{0}]").format(nodes)
-        return render(reduce(step, self.arguments, ([], ) * 2)[0])
-
-    def setdefault_metavars(self, metavar):
-        if isinstance(metavar, six.binary_type):
-            metavar = metavar.decode("utf-8")
-        for argument in self.arguments:
-            if argument.metavar is None:
-                argument.metavar = metavar
-
-    def copy(self):
-        return self.__class__(
-            *[argument.copy() for argument in self.arguments]
-        )
-
-    def parse(self, command, arguments):
-        result = []
-        for argument in self.arguments:
-            try:
-                result.append(argument.parse(command, arguments))
-            except EndOptionParsing:
-                break
-        return result if len(self.arguments) > 1 else result[0]
-
-    def parse_and_store(self, command, namespace, name, arguments):
-        raise NotImplementedError()
-
-    def __repr__(self):
-        return create_repr(self.__class__.__name__, self.arguments, {})
-
-
-class Last(ContainerArgument):
-    """
-    Stores only the last occurance in the namespace.
-    """
-    def parse_and_store(self, command, namespace, name, arguments):
-        namespace[name] = self.parse(command, arguments)
-        return namespace
-
-
-class List(ContainerArgument):
-    """
-    Stores every occurance in a list.
-    """
-    def parse_and_store(self, command, namespace, name, arguments):
-        namespace.setdefault(name, []).append(self.parse(command, arguments))
-        return namespace
-
-
-class Set(ContainerArgument):
-    """
-    Stores every occurance in a set.
-    """
-    def parse_and_store(self, command, namespace, name, arguments):
-        namespace.setdefault(name, set()).add(self.parse(command, arguments))
-        return namespace
-
-
-class Adder(ContainerArgument):
-    """
-    Stores the sum of every occurance.
-    """
-    def parse_and_store(self, command, namespace, name, arguments):
-        if name in namespace:
-            namespace[name] += self.parse(command, arguments)
-        else:
-            namespace[name] = self.parse(command, arguments)
-        return namespace
 
 
 class Argument(object):

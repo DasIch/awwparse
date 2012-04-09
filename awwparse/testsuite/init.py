@@ -8,10 +8,7 @@
 """
 from six import u, StringIO
 
-from awwparse import (
-    Option, Command, Last, List, Arguments, CLI, Integer,
-    String
-)
+from awwparse import Option, Command, Arguments, CLI, Integer, String
 from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
@@ -24,16 +21,6 @@ from awwparse.testsuite import (
 
 
 class OptionTestCase(TestCase):
-    def test_container_argument(self):
-        class TestOption(Option):
-            container_argument = List
-
-        command = TestCommand(options=[("foo", TestOption("-a", String()))])
-        self.assert_equal(
-            command.run(["-a", "foo", "-a", "bar"]),
-            ((), {"foo": [u("foo"), u("bar")]})
-        )
-
     def test_signature(self):
         command = TestCommand(
             options=[("option", Option("-o", String(), String(), String()))]
@@ -96,7 +83,7 @@ class OptionTestCase(TestCase):
             repr(Option("-o", "--option", String()))
             .startswith("Option('-o', '--option'")
         )
-        parts = [repr(Last(String())), "help=None"]
+        parts = [repr(String()), "help=None"]
         for part in parts:
             self.assert_in(part, repr(Option("-o", String())))
 
@@ -223,13 +210,13 @@ class CommandTestCase(TestCase):
     def test_multiple_options_for_name(self):
         command = TestCommand(
             options=[
-                ("foo", Option("-a", List(Integer()))),
-                ("foo", Option("-b", List(Integer())))
+                ("foo", Option("-a", Integer())),
+                ("foo", Option("-b", Integer()))
             ]
         )
         self.assert_equal(
             command.run(["-a", "1", "-b", "2"]),
-            ((), {"foo": [1, 2]})
+            ((), {"foo": 2})
         )
 
     def test_add_command(self):

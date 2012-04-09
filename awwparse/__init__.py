@@ -14,7 +14,9 @@ from functools import partial
 from itertools import takewhile, count
 from collections import deque
 
+import six
 from six import u
+from six.moves import reduce
 
 from awwparse.utils import (
     set_attributes_from_kwargs, force_list, get_terminal_width, golden_split,
@@ -22,14 +24,14 @@ from awwparse.utils import (
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
-    ArgumentConflict, PositionalArgumentMissing, CLIError
+    ArgumentConflict, PositionalArgumentMissing, CLIError, EndOptionParsing
 )
 
 from awwparse.arguments import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    Argument, Boolean, Last, List, Set, Adder, ContainerArgument, NativeString,
-    parse_argument_signature, Mapping
+    Argument, Boolean, NativeString, parse_argument_signature, Mapping
 )
+from awwparse.actions import store_last, append_to_list, add_to_set, add, sub
 
 
 class Arguments(object):
@@ -110,7 +112,7 @@ class Command(object):
                 raise ValueError("missing annotation for: {0}".format(name))
         for name in signature.positional_arguments:
             annotation = lookup_annotation(name)
-            if isinstance(annotation, (Argument, ContainerArgument)):
+            if isinstance(annotation, Argument):
                 annotation.metavar = name
                 command.add_argument(annotation)
             else:
@@ -120,7 +122,7 @@ class Command(object):
         if signature.arbitary_positional_arguments is not None:
             name = signature.arbitary_positional_arguments
             annotation = lookup_annotation(name)
-            if isinstance(annotation, (Argument, ContainerArgument)):
+            if isinstance(annotation, Argument):
                 annotation.metavar = name
                 annotation.remaining = True
                 command.add_argument(annotation)
@@ -130,7 +132,7 @@ class Command(object):
                 )
         for name in signature.keyword_arguments:
             annotation = lookup_annotation(name)
-            if isinstance(annotation, (Argument, ContainerArgument)):
+            if isinstance(annotation, Argument):
                 command.add_option(
                     name,
                     Option("-" + name[0], "--" + name[1:], annotation),
@@ -507,7 +509,10 @@ class Command(object):
             u("Options"),
             (
                 (option.get_usage(using="both"), option.help)
-                for option in sorted(self.options, key=lambda o: o._added)
+                for option in sorted(
+                    self.options,
+                    key=lambda o: o._added
+                )
             )
         )
 
@@ -625,19 +630,19 @@ class Option(object):
     :param help: A help message explaining the option in detail
                  (default: ``None``).
     """
-    container_argument = Last
     prefix_chars = frozenset(["-", "+"])
 
     def __init__(self, *signature, **kwargs):
-        short, long, parser = self._parse_signature(signature)
+        short, long, arguments = self._parse_signature(signature)
         if short is None and long is None:
             raise TypeError("A short or a long has to be passed")
         if short is not None and len(short) != 2:
             raise ValueError("A short has to be two characters long")
         self.short = short
         self.long = long
-        self.parser = parser
+        self.arguments = arguments
         set_attributes_from_kwargs(self, kwargs, {
+            "action": store_last,
             "help": None
         })
         self._added = 0
@@ -667,29 +672,31 @@ class Option(object):
                     signature[0]
                 )
             )
-        if len(arguments) == 1 and isinstance(arguments[0], ContainerArgument):
-            parser = arguments[0]
-        else:
-            parser = self.container_argument(*arguments)
-            if parser.arguments[0].optional:
-                raise ValueError(
-                    "first argument must not be optional: {0!r}".format(
-                        arguments[0]
-                    )
+        arguments = parse_argument_signature(arguments)
+        if arguments[0].optional:
+            raise ValueError(
+                "first argument must not be optional: {0!r}".format(
+                    arguments[0]
                 )
-        return short, long, parser
+            )
+        return short, long, arguments
 
     def setdefault_metavars(self, metavar):
-        self.parser.setdefault_metavars(metavar)
+        if isinstance(metavar, six.binary_type):
+            metavar = metavar.decode("utf-8")
+        for argument in self.arguments:
+            if argument.metavar is None:
+                argument.metavar = metavar
 
     def copy(self):
         option = self.__class__.__new__(self.__class__)
         set_attributes(option, {
             "short": self.short,
             "long": self.long,
-            "parser": self.parser.copy(),
-            "help": self.help,
-            "_added": self._added
+            "arguments": [argument.copy() for argument in self.arguments],
+            "_added": self._added,
+            "action": self.action,
+            "help": self.help
         })
         return option
 
@@ -699,16 +706,36 @@ class Option(object):
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
         if using == "both" and self.short and self.long:
-            return u("{short} {usage}, {long} {usage}").format(
-                short=self.short,
-                long=self.long,
-                usage=self.parser.usage
-            ).strip()
-        return u("{0} {1}").format(
-            self.short if using == "short" and self.short or
-                          using in set(["long", "both"]) and not self.long
-            else self.long,
-            self.parser.usage
+            usage = u("{short} {usage}, {long} {usage}")
+        else:
+            usage = u("{0} {{usage}}").format(
+                u("{short}") if using == "short" and self.short or
+                           using in set(["long", "both"]) and not self.long
+                else u("{long}")
+            )
+
+        def step(acc, next):
+            root, current = acc
+            if next.optional:
+                current.append([next])
+                current = current[-1]
+            else:
+                current.append(next)
+            return root, current
+
+        def render(tree, _root=True):
+            if isinstance(tree, Argument):
+                return tree.usage
+            else:
+                nodes = u(" ").join(render(node, _root=False) for node in tree)
+                if _root:
+                    return nodes
+                return u("[{0}]").format(nodes)
+
+        return usage.format(
+            short=self.short,
+            long=self.long,
+            usage=render(reduce(step, self.arguments, ([], ) * 2)[0])
         ).strip()
 
     def get_prefix(self, argument):
@@ -725,12 +752,20 @@ class Option(object):
         return False, argument
 
     def parse(self, command, namespace, name, arguments):
-        return self.parser.parse_and_store(command, namespace, name, arguments)
+        result = []
+        for argument in self.arguments:
+            try:
+                result.append(argument.parse(command, arguments))
+            except EndOptionParsing:
+                break
+        result = result if len(self.arguments) > 1 else result[0]
+        namespace[name] = self.action(namespace.get(name), result)
+        return namespace
 
     def __repr__(self):
         return create_repr(
             self.__class__.__name__,
-            list(filter(None, [self.short, self.long])) + [self.parser],
+            list(filter(None, [self.short, self.long])) + self.arguments,
             {
                 "help": self.help
         })
@@ -819,5 +854,6 @@ class CLI(Command):
 __all__ = [
     "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
-    "Last", "List", "Set", "Adder", "NativeString", "Mapping"
+    "Last", "List", "Set", "Adder", "NativeString", "Mapping", "store_last",
+    "append_to_list", "add_to_set", "add", "sub"
 ]

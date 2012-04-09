@@ -16,25 +16,6 @@
    :members:
 
 
-Container Arguments
--------------------
-
-.. autoclass:: Last
-   :members:
-
-
-.. autoclass:: List
-   :members:
-
-
-.. autoclass:: Set
-   :members:
-
-
-.. autoclass:: Adder
-   :members:
-
-
 Arguments
 ---------
 
@@ -73,3 +54,22 @@ Arguments
 
 
 .. autoclass:: Mapping
+
+
+Actions
+-------
+
+
+.. autofunction:: store_last
+
+
+.. autofunction:: append_to_list
+
+
+.. autofunction:: add_to_set
+
+
+.. autofunction:: add
+
+
+.. autofunction:: sub
