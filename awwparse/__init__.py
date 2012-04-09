@@ -11,7 +11,7 @@ import sys
 import textwrap
 from types import MethodType
 from functools import partial
-from itertools import takewhile
+from itertools import takewhile, count
 from collections import deque
 
 from six import u
@@ -195,9 +195,9 @@ class Command(object):
         return command
 
     def __init__(self, options=None, commands=None, arguments=None):
-        self.options = {
-            HelpOption(): "__awwparse_help"
-        }
+        self._next_added = partial(next, count())
+        self.options = {}
+        self.add_option("__awwparse_help", HelpOption())
         self.add_options(self.__class__.options)
         if options is not None:
             self.add_options(options)
@@ -280,7 +280,7 @@ class Command(object):
                 u("[{0}]").format(option.get_usage())
                 for option in sorted(
                     self.options,
-                    key=lambda option: option.short is None
+                    key=lambda option: option._added
                 )
             )
         if self.commands:
@@ -311,6 +311,7 @@ class Command(object):
                 (self.option_longs[option.long], "long")
             )
         option = option.copy()
+        option._added = self._next_added()
         option.setdefault_metavars(identifier)
         for conflicting, reason in conflicting_options:
             if reason == "short":
@@ -506,7 +507,7 @@ class Command(object):
             u("Options"),
             (
                 (option.get_usage(using="both"), option.help)
-                for option in self.options
+                for option in sorted(self.options, key=lambda o: o._added)
             )
         )
 
@@ -639,6 +640,7 @@ class Option(object):
         set_attributes_from_kwargs(self, kwargs, {
             "help": None
         })
+        self._added = 0
 
     def _parse_signature(self, signature):
         if len(signature) < 2:
@@ -686,7 +688,8 @@ class Option(object):
             "short": self.short,
             "long": self.long,
             "parser": self.parser.copy(),
-            "help": self.help
+            "help": self.help,
+            "_added": self._added
         })
         return option
 
