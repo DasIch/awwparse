@@ -195,9 +195,9 @@ class Command(object):
         return command
 
     def __init__(self, options=None, commands=None, arguments=None):
-        self.options = [
-            ("__awwparse_help", HelpOption())
-        ]
+        self.options = {
+            HelpOption(): "__awwparse_help"
+        }
         self.add_options(self.__class__.options)
         if options is not None:
             self.add_options(options)
@@ -242,7 +242,7 @@ class Command(object):
         """
         A set of all option name prefixes.
         """
-        return set(option.name_prefix for (_, option) in self.options)
+        return set(option.name_prefix for option in self.options)
 
     @property
     def abbreviated_option_prefixes(self):
@@ -250,7 +250,7 @@ class Command(object):
         A set of all abbreviated option name prefixes.
         """
         return set(
-            option.abbreviation_prefix for (_, option) in self.options
+            option.abbreviation_prefix for option in self.options
         )
 
     @property
@@ -259,7 +259,7 @@ class Command(object):
         A mapping of all abbreviated option argument names to options.
         """
         return dict(
-            (option.short, option) for (_, option) in self.options
+            (option.short, option) for option in self.options
             if option.short is not None
         )
 
@@ -269,7 +269,7 @@ class Command(object):
         A mapping of all complete option argument names to options.
         """
         return dict(
-            (option.long, option) for (_, option) in self.options
+            (option.long, option) for option in self.options
             if option.long is not None
         )
 
@@ -279,7 +279,7 @@ class Command(object):
             result.extend(
                 u("[{0}]").format(option.get_usage())
                 for option in sorted(
-                    (option for (_, option) in self.options),
+                    self.options,
                     key=lambda option: option.short is None
                 )
             )
@@ -332,7 +332,7 @@ class Command(object):
                     option, reason, conflicting
                 )
             )
-        self.options.append((identifier, option))
+        self.options[option] = identifier
 
     def add_options(self, options, force=False, resolve_conflicts=False):
         """
@@ -348,10 +348,7 @@ class Command(object):
         """
         Removes the given option.
         """
-        self.options = [
-            (identifier, option) for identifier, option in self.options
-            if option is not to_be_removed_option
-        ]
+        del self.options[to_be_removed_option]
 
     def add_command(self, name, command, force=False):
         """
@@ -509,7 +506,7 @@ class Command(object):
             u("Options"),
             (
                 (option.get_usage(using="both"), option.help)
-                for (_, option) in self.options
+                for option in self.options
             )
         )
 
@@ -526,9 +523,15 @@ class Command(object):
         modified_argument = argument
         if self.is_command(argument):
             return argument, self.commands[argument], ""
+        elif argument in self.option_longs:
+            option = self.option_longs[argument]
+            return self.options[option], option, ""
+        elif argument in self.option_shorts:
+            option = self.option_shorts[argument]
+            return self.options[option], option, ""
         else:
             modified_argument = argument
-            for name, option in self.options:
+            for option, name in self.options.items():
                 matched, modified_argument = option.matches(modified_argument)
                 if matched:
                     return name, option, modified_argument
