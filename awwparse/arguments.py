@@ -257,7 +257,7 @@ class Any(ConverterBase):
                 return argument.convert(string)
             except UserTypeError:
                 pass
-        raise UserTypeError(self.error_message.format(string))
+        raise UserTypeError(self.error_message.format(argument=string))
 
     def __repr__(self):
         return create_repr(

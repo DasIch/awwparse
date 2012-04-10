@@ -128,6 +128,19 @@ class NativeStringTestCase(TestCase):
 
 
 class AnyTestCase(TestCase):
+    def test_parse(self):
+        command = TestCommand(
+            options=[
+                ("foo", Option(
+                    "-o",
+                    Any([Integer()], u("{argument!r} is not an integer"))
+                ))
+            ]
+        )
+        self.assert_equal(command.run(["-o", "1"]), ((), {"foo": 1}))
+        with self.assert_raises(UserTypeError):
+            command.run(["-o", "foo"])
+
     def test_repr(self):
         parts = [
             "[{0!r}]".format(Bytes()), "'foo'", "metavar=None",
