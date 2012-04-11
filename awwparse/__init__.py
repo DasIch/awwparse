@@ -203,7 +203,7 @@ class Command(object):
         if options is not None:
             self.add_options(options)
 
-        self.commands = {}
+        self.commands = OrderedDict()
         self.add_commands(self.__class__.commands)
         if commands is not None:
             self.add_commands(commands)

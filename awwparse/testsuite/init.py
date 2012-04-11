@@ -422,9 +422,10 @@ class CLITestCase(TestCase):
 
         cli.stdout = stringio = StringIO()
         cli.add_command("baz", Command())
+        cli.add_command("spam", Command())
         cli.print_help()
         self.assert_equal(stringio.getvalue() , u(
-            "Usage: app [-h] [-a bar] {baz} foo\n"
+            "Usage: app [-h] [-a bar] {baz,spam} foo\n"
             "\n"
             "Positional Arguments\n"
             "  foo\n"
@@ -435,6 +436,7 @@ class CLITestCase(TestCase):
             "\n"
             "Commands\n"
             "  baz\n"
+            "  spam\n"
         ))
 
     def test_error_handling(self):
