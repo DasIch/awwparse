@@ -184,6 +184,21 @@ class Signature(object):
         """
         return cls.from_method(object.__call__)
 
+    @property
+    def names(self):
+        """
+        A list of names in the order in which they appear in the signature as
+        far as that can be guraanteed.
+        """
+        result = []
+        result.extend(self.positional_arguments)
+        if self.arbitary_positional_arguments is not None:
+            result.append(self.arbitary_positional_arguments)
+        if self.arbitary_keyword_arguments is not None:
+            result.append(self.arbitary_keyword_arguments)
+        result.extend(self.keyword_arguments)
+        return result
+
 
 def iter_mapping(mapping):
     return mapping.items() if isinstance(mapping, dict) else mapping

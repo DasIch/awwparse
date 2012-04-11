@@ -159,6 +159,14 @@ class SignatureTestCase(TestCase):
         signature = Signature.from_object(TestClass())
         self.assert_equal(signature.positional_arguments, ["a", "b"])
 
+    def test_names(self):
+        def function(a, b, c=None, *args, **kwargs):
+            pass
+        self.assert_equal(
+            Signature.from_function(function).names,
+            ["a", "b", "c", "args", "kwargs"]
+        )
+
 
 class OrderedDictTestCase(TestCase):
     def test_popitem(self):
