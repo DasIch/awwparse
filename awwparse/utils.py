@@ -191,7 +191,11 @@ def iter_mapping(mapping):
     return mapping.items() if isinstance(mapping, dict) else mapping
 
 
-def create_repr(name, args, kwargs):
+def create_repr(name, args=None, kwargs=None):
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     return "{0}({1})".format(
         name,
         ", ".join(list(map(repr, args)) + [

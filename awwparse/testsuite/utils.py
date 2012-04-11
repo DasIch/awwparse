@@ -67,13 +67,13 @@ class UtilsTestCase(TestCase):
         )
 
     def test_create_repr(self):
-        self.assert_equal(create_repr("foo", [], {}), "foo()")
+        self.assert_equal(create_repr("foo"), "foo()")
         self.assert_equal(
-            create_repr("foo", ["bar", "baz"], {}),
+            create_repr("foo", ["bar", "baz"]),
             "foo('bar', 'baz')"
         )
         self.assert_equal(
-            create_repr("foo", [], {"spam": "eggs"}),
+            create_repr("foo", kwargs={"spam": "eggs"}),
             "foo(spam='eggs')"
         )
         self.assert_equal(

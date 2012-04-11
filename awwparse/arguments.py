@@ -85,7 +85,7 @@ class Argument(object):
             return argument
 
     def __repr__(self):
-        return create_repr(self.__class__.__name__, [], self.copy_args())
+        return create_repr(self.__class__.__name__, kwargs=self.copy_args())
 
 
 class EncodingArgument(Argument):
@@ -288,7 +288,7 @@ class Number(Any):
         return args
 
     def __repr__(self):
-        return create_repr(self.__class__.__name__, [], self.copy_args())
+        return create_repr(self.__class__.__name__, kwargs=self.copy_args())
 
 
 class Boolean(Argument):
@@ -312,7 +312,7 @@ class Boolean(Argument):
         return self.store
 
     def __repr__(self):
-        return create_repr(self.__class__.__name__, [], self.copy_args())
+        return create_repr(self.__class__.__name__, kwargs=self.copy_args())
 
 
 class Choice(Argument):
