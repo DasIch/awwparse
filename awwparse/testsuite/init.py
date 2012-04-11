@@ -435,8 +435,8 @@ class CLITestCase(TestCase):
             "  -a bar\n"
             "\n"
             "Commands\n"
-            "  baz\n"
-            "  spam\n"
+            "  baz [-h]\n"
+            "  spam [-h]\n"
         ))
 
     def test_error_handling(self):

@@ -511,7 +511,7 @@ class Command(object):
         self._print_columns(
             u("Commands"),
             (
-                (name, command.help)
+                ("{0} {1}".format(name, command.get_usage()), command.help)
                 for name, command in self.commands.items()
             )
         )
