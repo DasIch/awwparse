@@ -100,8 +100,8 @@ class SignatureTestCase(TestCase):
 
         function = lambda a=1, b=2: None
         signature = Signature.from_function(function)
-        self.assert_equal(signature.positional_arguments, [])
-        self.assert_equal(signature.keyword_arguments, ["a", "b"])
+        self.assert_equal(signature.positional_arguments, ["a", "b"])
+        self.assert_equal(signature.keyword_arguments, [])
         self.assert_equal(signature.defaults, {"a": 1, "b": 2})
 
         def function():
@@ -114,8 +114,8 @@ class SignatureTestCase(TestCase):
         """
         function = lambda a=1, *args, b=2: None
         signature = Signature.from_function(function)
-        self.assert_equal(signature.positional_arguments, [])
-        self.assert_equal(signature.keyword_arguments, ["a", "b"])
+        self.assert_equal(signature.positional_arguments, ["a"])
+        self.assert_equal(signature.keyword_arguments, ["b"])
         self.assert_equal(signature.defaults, {"a": 1, "b": 2})
         """
 

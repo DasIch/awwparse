@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import os
 import math
 import inspect
+from itertools import takewhile
 from collections import MutableMapping
 try:
     from itertools import zip_longest
@@ -125,21 +126,18 @@ class Signature(object):
         kwonlydefaults = getattr(argspec, "kwonlydefaults", None)
         if kwonlydefaults is not None:
             defaults.update(kwonlydefaults)
-        positional = []
-        keyword = []
-        for arg, default in zip_longest(reversed(argspec.args),
-                                        reversed(argspec.defaults or [])):
-            if default is None:
-                positional.append(arg)
-            else:
-                defaults[arg] = default
-                keyword.append(arg)
-        positional.reverse()
-        keyword.reverse()
-        keyword.extend(getattr(argspec, "kwonlyargs", []))
+        defaults.update(
+            takewhile(
+                lambda item: item[1] is not None,
+                zip_longest(
+                    reversed(argspec.args),
+                    reversed(argspec.defaults or [])
+                )
+            )
+        )
         return cls(
-            positional,
-            keyword,
+            argspec.args,
+            getattr(argspec, "kwonlyargs", []),
             getattr(argspec, "annotations", {}),
             argspec.varargs,
             getattr(argspec, "varkw", getattr(argspec, "keywords", None)),

@@ -112,9 +112,18 @@ class Command(object):
                 raise ValueError("missing annotation for: {0}".format(name))
         for name in signature.positional_arguments:
             annotation = lookup_annotation(name)
-            if isinstance(annotation, Argument):
-                annotation.metavar = name
-                command.add_argument(annotation)
+            if isinstance(annotation, Option):
+                command.add_option(name, annotation)
+            elif isinstance(annotation, Argument):
+                if name in signature.defaults:
+                    command.add_option(
+                        name,
+                        Option("-" + name[0], "--" + name, annotation),
+                        resolve_conflicts=True
+                    )
+                else:
+                    annotation.metavar = name
+                    command.add_argument(annotation)
             else:
                 raise ValueError(
                     "unexpected annotation: {0!r}".format(annotation)
