@@ -8,7 +8,7 @@
 """
 from awwparse.utils import (
     set_attributes, set_attributes_from_kwargs, missing, force_list,
-    get_terminal_width, Signature, OrderedDict, iter_mapping
+    get_terminal_width, Signature, OrderedDict, iter_mapping, create_repr
 )
 from awwparse.testsuite import TestCase, make_suite, py3test
 
@@ -64,6 +64,21 @@ class UtilsTestCase(TestCase):
         self.assert_equal(
             list(iter_mapping({"foo": 1, "bar": 2})),
             [("foo", 1), ("bar", 2)]
+        )
+
+    def test_create_repr(self):
+        self.assert_equal(create_repr("foo", [], {}), "foo()")
+        self.assert_equal(
+            create_repr("foo", ["bar", "baz"], {}),
+            "foo('bar', 'baz')"
+        )
+        self.assert_equal(
+            create_repr("foo", [], {"spam": "eggs"}),
+            "foo(spam='eggs')"
+        )
+        self.assert_equal(
+            create_repr("foo", ["bar", "baz"], {"spam": "eggs"}),
+            "foo('bar', 'baz', spam='eggs')"
         )
 
 
