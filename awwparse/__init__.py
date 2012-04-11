@@ -694,14 +694,6 @@ class Option(object):
             raise ValueError(
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
-        if using == "both" and self.short and self.long:
-            usage = u("{short} {usage}, {long} {usage}")
-        else:
-            usage = u("{0} {{usage}}").format(
-                u("{short}") if using == "short" and self.short or
-                           using in set(["long", "both"]) and not self.long
-                else u("{long}")
-            )
 
         def step(acc, next):
             root, current = acc
@@ -720,6 +712,20 @@ class Option(object):
                 if _root:
                     return nodes
                 return u("[{0}]").format(nodes)
+
+        usage = render(reduce(step, self.arguments, ([], ) * 2)[0])
+        if using == "both" and self.short and self.long:
+            return (
+                u("{0} {1}").format(self.short, usage).strip() +
+                u(", ") +
+                u("{0} {1}").format(self.long, usage).strip()
+            )
+        else:
+            return u("{0} {{0}}").format(
+                u("{short}") if using == "short" and self.short or
+                                using in set(["long", "both"]) and not self.long
+                else u("{long}")
+            ).format(usage)
 
         return usage.format(
             short=self.short,
