@@ -8,7 +8,7 @@
 """
 from awwparse.utils import (
     set_attributes, set_attributes_from_kwargs, missing, force_list,
-    get_terminal_width, Signature, OrderedDict
+    get_terminal_width, Signature, OrderedDict, iter_mapping
 )
 from awwparse.testsuite import TestCase, make_suite, py3test
 
@@ -55,6 +55,16 @@ class UtilsTestCase(TestCase):
     def test_get_terminal_width(self):
         # check that it doesn't raise an exception and returns an integer
         self.assert_is_instance(get_terminal_width(), int)
+
+    def test_iter_mapping(self):
+        self.assert_equal(
+            list(iter_mapping([("foo", 1), ("bar", 2)])),
+            [("foo", 1), ("bar", 2)]
+        )
+        self.assert_equal(
+            list(iter_mapping({"foo": 1, "bar": 2})),
+            [("foo", 1), ("bar", 2)]
+        )
 
 
 class SignatureTestCase(TestCase):
