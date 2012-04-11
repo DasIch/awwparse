@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import os
 import math
 import inspect
+from collections import MutableMapping
 try:
     from itertools import zip_longest
 except ImportError:
@@ -197,3 +198,88 @@ def create_repr(name, args, kwargs):
             "{0}={1!r}".format(key, value) for key, value in kwargs.items()
         ])
     )
+
+
+class _Link(object):
+    def __init__(self, prev=None, key=None, next=None):
+        self.prev = self if prev is None else prev
+        self.key = key
+        self.next = self if next is None else next
+
+    def add_after(self, link):
+        link.next = self.next
+        link.prev = self
+        self.next = link
+        link.next.prev = link
+
+    def add_before(self, link):
+        link.prev = self.prev
+        link.next = self
+        self.prev = link
+        link.prev.next = link
+
+    def remove(self):
+        self.prev.next = self.next
+        self.next.prev = self.prev
+        self.next = self.prev = None
+
+
+class OrderedDict(MutableMapping, dict):
+    def __init__(self, *args, **kwargs):
+        MutableMapping.__init__(self)
+        dict.__init__(self)
+        self._root = _Link()
+        self._map = {}
+        self.update(*args, **kwargs)
+
+    # overrides abstract implementation
+    __getitem__ = dict.__getitem__
+    __len__ = dict.__len__
+    __contains__ = dict.__contains__
+
+    def __setitem__(self, key, value):
+        if key not in self:
+            link = self._map[key] = _Link(key=key)
+            self._root.add_before(link)
+        dict.__setitem__(self, key, value)
+
+    def __delitem__(self, key):
+        dict.__delitem__(self, key)
+        link = self._map.pop(key)
+        link.remove()
+
+    def __iter__(self):
+        current = self._root.next
+        while current is not self._root:
+            yield current.key
+            current = current.next
+
+    def __reversed__(self):
+        current = self._root.prev
+        while current is not self._root:
+            yield current.key
+            current = current.prev
+
+    def clear(self):
+        self._root = _Link()
+        self._map.clear()
+        MutableMapping.clear(self)
+
+    def popitem(self, last=True):
+        if not self:
+            raise KeyError("dict is empty")
+        key = next(reversed(self) if last else iter(self))
+        return key, MutableMapping.pop(self, key)
+
+    def move_to_end(self, key, last=True):
+        if not key in self:
+            raise KeyError(key)
+        moving = self._map[key]
+        moving.remove()
+        if last:
+            self._root.prev.add_after(moving)
+        else:
+            self._root.next.add_before(moving)
+
+    def __repr__(self):
+        return "{0}({1!r})".format(self.__class__.__name__, list(self.items()))

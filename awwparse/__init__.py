@@ -11,7 +11,7 @@ import sys
 import textwrap
 from types import MethodType
 from functools import partial
-from itertools import takewhile, count
+from itertools import takewhile
 from collections import deque
 
 import six
@@ -20,7 +20,7 @@ from six.moves import reduce
 
 from awwparse.utils import (
     set_attributes_from_kwargs, force_list, get_terminal_width, golden_split,
-    set_attributes, Signature, iter_mapping, create_repr
+    set_attributes, Signature, iter_mapping, create_repr, OrderedDict
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -197,8 +197,7 @@ class Command(object):
         return command
 
     def __init__(self, options=None, commands=None, arguments=None):
-        self._next_added = partial(next, count())
-        self.options = {}
+        self.options = OrderedDict()
         self.add_option("__awwparse_help", HelpOption())
         self.add_options(self.__class__.options)
         if options is not None:
@@ -279,11 +278,7 @@ class Command(object):
         result = [] if arguments is None else arguments.trace[:-1]
         if self.options:
             result.extend(
-                u("[{0}]").format(option.get_usage())
-                for option in sorted(
-                    self.options,
-                    key=lambda option: option._added
-                )
+                u("[{0}]").format(option.get_usage()) for option in self.options
             )
         if self.commands:
             result.append(u("{%s}") % u(",").join(self.commands))
@@ -313,7 +308,6 @@ class Command(object):
                 (self.option_longs[option.long], "long")
             )
         option = option.copy()
-        option._added = self._next_added()
         option.setdefault_metavars(identifier)
         for conflicting, reason in conflicting_options:
             if reason == "short":
@@ -509,10 +503,7 @@ class Command(object):
             u("Options"),
             (
                 (option.get_usage(using="both"), option.help)
-                for option in sorted(
-                    self.options,
-                    key=lambda o: o._added
-                )
+                for option in self.options
             )
         )
 
@@ -645,7 +636,6 @@ class Option(object):
             "action": store_last,
             "help": None
         })
-        self._added = 0
 
     def _parse_signature(self, signature):
         if len(signature) < 2:
@@ -694,7 +684,6 @@ class Option(object):
             "short": self.short,
             "long": self.long,
             "arguments": [argument.copy() for argument in self.arguments],
-            "_added": self._added,
             "action": self.action,
             "help": self.help
         })

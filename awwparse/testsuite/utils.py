@@ -8,7 +8,7 @@
 """
 from awwparse.utils import (
     set_attributes, set_attributes_from_kwargs, missing, force_list,
-    get_terminal_width, Signature
+    get_terminal_width, Signature, OrderedDict
 )
 from awwparse.testsuite import TestCase, make_suite, py3test
 
@@ -135,4 +135,20 @@ class SignatureTestCase(TestCase):
         self.assert_equal(signature.positional_arguments, ["a", "b"])
 
 
-suite = make_suite([UtilsTestCase, SignatureTestCase])
+class OrderedDictTestCase(TestCase):
+    def test_popitem(self):
+        d = OrderedDict([("foo", 1), ("bar", 2), ("baz", 3)])
+        self.assert_equal(d.popitem(), ("baz", 3))
+        self.assert_equal(d, OrderedDict([("foo", 1), ("bar", 2)]))
+        self.assert_equal(d.popitem(last=False), ("foo", 1))
+        self.assert_equal(d, OrderedDict([("bar", 2)]))
+
+    def test_move_to_end(self):
+        d = OrderedDict([("foo", 1), ("bar", 2), ("baz", 3)])
+        d.move_to_end("foo")
+        self.assert_equal(d, OrderedDict([("bar", 2), ("baz", 3), ("foo", 1)]))
+        d.move_to_end("foo", last=False)
+        self.assert_equal(d, OrderedDict([("foo", 1), ("bar", 2), ("baz", 3)]))
+
+
+suite = make_suite([UtilsTestCase, SignatureTestCase, OrderedDictTestCase])
