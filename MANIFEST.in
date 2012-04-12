@@ -1,0 +1,8 @@
+include README.rst LICENSE.rst run-tests.py
+recursive-include examples *
+recursive-exclude examples *.pyc
+recursive-exclude examples *.pyo
+recursive-include documentation *
+recursive-exclude documentation *.pyc
+recursive-exclude documentation *.pyo
+prune documentation/_build
