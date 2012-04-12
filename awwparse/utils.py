@@ -146,14 +146,23 @@ class Signature(object):
         )
 
     @classmethod
+    def _add_annotations(cls, signature, function_or_method):
+        # this is a hack we perform that is necessary if the user added an
+        # __annotations__ attribute but we are running under 2.x and therefore
+        # _getargspec isn't picking up __annotations__ correctly
+        if not signature.annotations and hasattr(function_or_method, "__annotations__"):
+            signature.annotations = function_or_method.__annotations__
+        return signature
+
+    @classmethod
     def from_function(cls, function):
         """
         Returns a :class:`Signature` object for the given `function` or static
         method.
         """
-        return cls._from_argspec(
+        return cls._add_annotations(cls._from_argspec(
             _getargspec(function), function.__doc__
-        )
+        ), function)
 
     @classmethod
     def from_method(cls, method, documentation=None):
@@ -161,13 +170,13 @@ class Signature(object):
         Returns a :class:`Signature` object for the given `method`.
         """
         argspec = _getargspec(method)
-        return cls._from_argspec(
+        return cls._add_annotations(cls._from_argspec(
             _ArgSpec(
                 argspec.args[1:],
                 *list(argspec)[1:]
             ),
             method.__doc__ if documentation is None else documentation
-        )
+        ), method)
 
     @classmethod
     def from_class(cls, class_):

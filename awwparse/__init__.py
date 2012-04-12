@@ -157,9 +157,13 @@ class Command(object):
         return command
 
     @classmethod
-    def from_function(cls, function):
+    def from_function(cls, *arguments):
         """
-        Returns a :class:`Command` object for the given annotated function.
+        Takes optional :class:`~Argument` objects corresponding to the
+        arguments in the signature of the function passed to the returned
+        function which returns a :class:`Command` object for the given
+        annotated function. The :class:`~Argument` objects serve as alternative
+        to annotations which are not available in Python 2.x.
 
         Positional arguments are turned into arguments, keyword arguments are
         turned into options and arbitary positional arguments are turned into
@@ -173,37 +177,46 @@ class Command(object):
         If an annotation is missing or has a wrong type a :exc:`ValueError` is
         raised.
         """
-        signature = Signature.from_function(function)
-        command = type(
-            function.__name__,
-            (cls, ),
-            {
-                "__module__": function.__module__,
-                "__doc__": function.__doc__
-            }
-        )()
-        command.main = function
-        cls._populate_from_signature(command, signature)
-        return command
+        def decorate(function):
+            signature = Signature.from_function(function)
+            if not signature.annotations:
+                signature.annotations = dict(zip(signature.names, arguments))
+            command = type(
+                function.__name__,
+                (cls, ),
+                {
+                    "__module__": function.__module__,
+                    "__doc__": function.__doc__
+                }
+            )()
+            command.main = function
+            cls._populate_from_signature(command, signature)
+            return command
+        return decorate
 
     @classmethod
-    def from_method(cls, method):
+    def from_method(cls, *arguments):
         """
         Like :meth:`from_function` but for methods.
 
         Note that for instance and class methods you have to pass the class or
         instance with the `default_args` argument of :meth:`run` to the method.
         """
-        command = type(
-            method.__name__,
-            (cls, ),
-            {
-                "__module__": method.__module__,
-                "__doc__": method.__doc__,
-                "main": staticmethod(method)
-            }
-        )()
-        return command
+        def decorate(method):
+            signature = Signature.from_method(method)
+            if not signature.annotations:
+                method.__annotations__ = dict(zip(signature.names, arguments))
+            command = type(
+                method.__name__,
+                (cls, ),
+                {
+                    "__module__": method.__module__,
+                    "__doc__": method.__doc__,
+                    "main": staticmethod(method)
+                }
+            )()
+            return command
+        return decorate
 
     def __init__(self, options=None, commands=None, arguments=None):
         self.options = OrderedDict()

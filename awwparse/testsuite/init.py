@@ -89,31 +89,59 @@ class OptionTestCase(TestCase):
 
 
 class CommandTestCase(TestCase):
-    @py3test
     def test_from_function(self):
+        @Command.from_function(Integer(), Integer())
+        def foo(a, b):
+            return a + b
+        self.assert_equal(foo.run(["1", "1"]), 2)
+
+        @Command.from_function(Integer())
+        def bar(*args):
+            return sum(args)
+        self.assert_equal(bar.run(["1", "1"]), 2)
+
+        @Command.from_function(Integer(), Integer())
+        def baz(a=1, b=1):
+            return a + b
+        self.assert_equal(baz.run([]), 2)
+        self.assert_equal(baz.run(["-a", "2", "-b", "2"]), 4)
+
+    @py3test
+    def test_from_function_annotations(self):
         """
-        @Command.from_function
+        @Command.from_function()
         def foo(a: Integer(), b: Integer()):
             return a + b
         self.assert_equal(foo.run(["1", "1"]), 2)
 
-        @Command.from_function
+        @Command.from_function()
         def foo(*args: Integer()):
             return sum(args)
         self.assert_equal(foo.run(["1", "1"]), 2)
 
-        @Command.from_function
+        @Command.from_function()
         def foo(a: Integer() = 1, b: Integer() = 1):
             return a + b
         self.assert_equal(foo.run([]), 2)
         self.assert_equal(foo.run(["-a", "2", "-b", "2"]), 4)
         """
 
-    @py3test
     def test_from_method(self):
+        class Foo(object):
+            @Command.from_method(Integer(), Integer())
+            def spam(self, a, b):
+                return self.add(a, b)
+
+            def add(self, a, b):
+                return a + b
+        foo = Foo()
+        self.assert_equal(foo.spam.run(["1", "1"], default_args=[foo]), 2)
+
+    @py3test
+    def test_from_method_annotations(self):
         """
         class Foo(object):
-            @Command.from_method
+            @Command.from_method()
             def spam(self, a: Integer(), b: Integer()):
                 return self.add(a, b)
 
