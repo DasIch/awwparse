@@ -6,8 +6,11 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+import sys
 import locale
+import codecs
 import decimal
+from abc import ABCMeta, abstractmethod
 
 import six
 from six import u
@@ -414,5 +417,244 @@ class Mapping(Argument):
                 "optional": self.optional,
                 "remaining": self.remaining,
                 "help": self.help
+            }
+        )
+
+
+class File(Argument):
+    """
+    Represents a file or standard stream (`sys.std{in,out}`) and returns an
+    :class:`Opener` object.
+
+    You can define which argument opens a standard stream with
+    `std_stream_argument`, whether standard streams should be used at all with
+    `allow_std_streams` and whether they should be closed with
+    `close_std_stream`.
+
+    If Python 2.x is used and `encoding` is not ``None`` :func:`codecs.open()`
+    will be used instead of :func:`open()`.
+
+    Standard streams will be wrapped in a :class:`codecs.StreamReaderWriter` if
+    Python 2.x is used and `encoding` is not ``None`` or Python 3.x is used but
+    the encoding of the stream is unknown
+    (``getattr(stream, "encoding", None) is None``) and `encoding` is not
+    ``None``.
+
+    If standard streams are allowed (the default), `mode` has to be either
+    `r` or `w` which will open `sys.stdin` and `sys.stdout` respectively,
+    otherwise a :exc:`ValueError` will be raised.
+
+    For the remaining arguments refer to :func:`open()`,
+    `open()`_ and :func:`codecs.open()`.
+
+    .. _open(): http://docs.python.org/dev/library/functions.html#open
+    """
+    def __init__(self, mode="r", buffering=-1, encoding=None, errors=None,
+                 newline=None, opener=None, std_stream_argument="-",
+                 allow_std_streams=True, close_std_stream=False, **kwargs):
+        Argument.__init__(self, **kwargs)
+        if allow_std_streams and mode not in set(["r", "w"]):
+            raise ValueError(
+                "invalid mode for standard stream: {0!r}".format(mode)
+            )
+        self.mode = mode
+        self.buffering = buffering
+        self.encoding = encoding
+        self.errors = errors
+        self.newline = newline
+        self.opener = opener
+        self.std_stream_argument = std_stream_argument
+        self.allow_std_streams = allow_std_streams
+        self.close_std_stream = close_std_stream
+
+    def copy_args(self):
+        args = Argument.copy_args(self)
+        args.update({
+            "mode": self.mode,
+            "buffering": self.buffering,
+            "encoding": self.encoding,
+            "errors": self.errors,
+            "newline": self.newline,
+            "opener": self.opener,
+            "std_stream_argument": self.std_stream_argument,
+            "allow_std_streams": self.allow_std_streams,
+            "close_std_stream": self.close_std_stream
+        })
+        return args
+
+    def parse(self, command, arguments):
+        if self.remaining:
+            result = []
+            while arguments:
+                result.append(self.parse_single(command, arguments))
+            return result
+        try:
+            return self.parse_single(command, arguments)
+        except ArgumentMissing:
+            if self.optional:
+                raise EndOptionParsing()
+            raise
+
+    def parse_single(self, command, arguments):
+        argument = self.get_next_argument(command, arguments)
+        if argument == self.std_stream_argument and self.allow_std_streams:
+            if self.mode == "r":
+                stream = command.stdin
+            elif self.mode == "w":
+                stream = command.stdout
+            else:
+                raise ValueError(
+                    "invalid mode for standard stream: {0!r}".format(self.mode)
+                )
+            return StandardStreamOpener(
+                stream,
+                should_close=self.close_std_stream,
+                encoding=self.encoding,
+                errors=self.errors
+            )
+        else:
+            return FileOpener(
+                argument,
+                mode=self.mode,
+                buffering=self.buffering,
+                encoding=self.encoding,
+                errors=self.errors,
+                newline=self.newline,
+                opener=self.opener
+            )
+
+    def __repr__(self):
+        return create_repr(self.__class__.__name__, [], self.copy_args())
+
+
+class Opener(object):
+    """
+    A base class for context managers that acquire and release resources.
+    """
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        self.resource = None
+
+    @abstractmethod
+    def acquire_resource(self):
+        """
+        Acquires and returns the resource.
+
+        Must be implemented by subclasses.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def release_resource(self):
+        """
+        Releases the resource.
+
+        Must be implemented by subclasses.
+        """
+        raise NotImplementedError()
+
+    def __enter__(self):
+        self.resource = self.acquire_resource()
+        return self.resource
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release_resource(self.resource)
+
+
+class FileOpener(Opener):
+    def __init__(self, path, mode="r", buffering=-1, encoding=None,
+                 errors=None, newline=None, opener=None):
+        Opener.__init__(self)
+        self.path = path
+        self.mode = mode
+        self.buffering = buffering
+        self.encoding = encoding
+        self.errors = errors
+        self.newline = newline
+        self.opener = opener
+
+    def acquire_resource(self):
+        if six.PY3:
+            kwargs = {}
+            if sys.version_info >= (3, 3):
+                kwargs["opener"] = self.opener
+            return open(
+                self.path,
+                mode=self.mode,
+                buffering=self.buffering,
+                encoding=self.encoding,
+                errors=self.errors,
+                newline=self.newline,
+                **kwargs
+            )
+        elif self.encoding is None:
+            return open(
+                self.path,
+                mode=self.mode,
+                buffering=self.buffering
+            )
+        else:
+            return codecs.open(
+                self.path,
+                mode=self.mode,
+                buffering=self.buffering,
+                encoding=self.encoding,
+                errors=self.errors
+            )
+
+    def release_resource(self, file):
+        file.close()
+
+    def __repr__(self):
+        return create_repr(
+            self.__class__.__name__,
+            [self.path],
+            {
+                "mode": self.mode,
+                "buffering": self.buffering,
+                "encoding": self.encoding,
+                "errors": self.errors,
+                "newline": self.newline,
+                "opener": self.opener
+            }
+        )
+
+
+class StandardStreamOpener(Opener):
+    def __init__(self, stream, should_close=False, encoding=None, errors=None):
+        Opener.__init__(self)
+        self.stream = stream
+        self.should_close = should_close
+        self.encoding = encoding
+        self.errors = errors
+
+    def acquire_resource(self):
+        if (six.PY3 and
+            getattr(self.stream, "encoding", None) is not None and
+            self.encoding is not None or
+            self.encoding is None):
+            return self.stream
+        else:
+            codec_info = codecs.lookup(self.encoding)
+            return codecs.StreamReaderWriter(
+                self.stream,
+                codec_info.streamreader,
+                codec_info.streamwriter,
+                self.errors
+            )
+
+    def release_resource(self, file):
+        if self.should_close:
+            file.close()
+
+    def __repr__(self):
+        return create_repr(
+            self.__class__.__name__,
+            [self.stream],
+            {
+                "should_close": self.should_close,
+                "encoding": self.encoding,
+                "errors": self.errors
             }
         )

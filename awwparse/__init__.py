@@ -29,7 +29,8 @@ from awwparse.exceptions import (
 
 from awwparse.arguments import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    Argument, Boolean, NativeString, parse_argument_signature, Mapping
+    Argument, Boolean, NativeString, parse_argument_signature, Mapping, File,
+    Opener, FileOpener, StandardStreamOpener
 )
 from awwparse.actions import store_last, append_to_list, add_to_set, add, sub
 
@@ -254,6 +255,7 @@ class Command(object):
                     attribute.main = partial(attribute.main, self)
                 self.add_command(name, attribute)
 
+    stdin = CLIAttribute("stdin")
     stdout = CLIAttribute("stdout")
     stderr = CLIAttribute("stderr")
     exit = CLIAttribute("exit")
@@ -832,13 +834,15 @@ class CLI(Command):
     section_indent = 2
 
     def __init__(self, options=None, commands=None, arguments=None,
-                 application_name=sys.argv[0], usage=None, stdout=sys.stdout,
-                 stderr=sys.stderr, exit=sys.exit, width=None):
+                 application_name=sys.argv[0], usage=None, stdin=sys.stdin,
+                 stdout=sys.stdout, stderr=sys.stderr, exit=sys.exit,
+                 width=None):
         Command.__init__(
             self, options=options, commands=commands, arguments=arguments
         )
         self.application_name = application_name
         self.usage = usage
+        self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
         self.exit = exit
@@ -872,5 +876,6 @@ __all__ = [
     "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
     "Last", "List", "Set", "Adder", "NativeString", "Mapping", "store_last",
-    "append_to_list", "add_to_set", "add", "sub"
+    "append_to_list", "add_to_set", "add", "sub", "File", "Opener",
+    "FileOpener", "StandardStreamOpener"
 ]

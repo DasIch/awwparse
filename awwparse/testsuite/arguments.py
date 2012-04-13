@@ -6,19 +6,21 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
+import os
 import decimal
 from functools import partial
 
 import six
+from six import BytesIO, StringIO
 from six import u
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any,
-    Number, Choice, Boolean, NativeString, Mapping
+    Number, Choice, Boolean, NativeString, Mapping, File
 )
 from awwparse.arguments import parse_argument_signature
 from awwparse.exceptions import UserTypeError
-from awwparse.testsuite import TestCase, make_suite, TestCommand
+from awwparse.testsuite import TestCase, make_suite, TestCommand, TestCLI
 
 
 class ArgumentsTestCase(TestCase):
@@ -323,10 +325,81 @@ class MappingTestCase(TestCase):
         )
 
 
+class FileTestCase(TestCase):
+    def test_parse(self):
+        stdin = StringIO("foobar")
+        cli = TestCLI(options=[("foo", Option("-o", File()))], stdin=stdin)
+        opener = cli.run(["-o", "-"])[1]["foo"]
+        with opener as file:
+            self.assert_equal(file.read(), "foobar")
+
+        stdout = BytesIO()
+        cli = TestCLI(
+            options=[
+                ("foo", Option("-o", File(mode="w")))
+            ],
+            stdout=stdout
+        )
+        opener = cli.run(["-o", "-"])[1]["foo"]
+        with opener as file:
+            file.write(b"foobar")
+        self.assert_equal(stdout.getvalue(), b"foobar")
+
+        stdout = BytesIO()
+        cli = TestCLI(
+            options=[
+                ("foo", Option("-o", File(mode="w", encoding="utf-8")))
+            ],
+            stdout=stdout
+        )
+        opener = cli.run(["-o", "-"])[1]["foo"]
+        with opener as file:
+            file.write(u("äöü"))
+        self.assert_equal(stdout.getvalue(), u("äöü").encode("utf-8"))
+
+        with self.assert_raises(ValueError):
+            File(mode="r+")
+        File(mode="r+", allow_std_streams=False)
+
+        try:
+            cli = TestCLI(
+                options=[
+                    ("foo", Option(
+                        "-o", File(mode="wb", allow_std_streams=False))
+                    )
+                ]
+            )
+            opener = cli.run(["-o", "FileTestCase.test_parse.txt"])[1]["foo"]
+            with opener as file:
+                file.write(b"foobar")
+
+            cli = TestCLI(
+                options=[
+                    ("foo", Option(
+                        "-o", File(mode="rb", allow_std_streams=False))
+                    )
+                ]
+            )
+            opener = cli.run(["-o", "FileTestCase.test_parse.txt"])[1]["foo"]
+            with opener as file:
+                self.assert_equal(file.read(), b"foobar")
+        finally:
+            os.remove("FileTestCase.test_parse.txt")
+
+
+    def test_repr(self):
+        parts = [
+            "mode='r'", "buffering=-1", "encoding=None", "errors=None",
+            "newline=None", "opener=None", "std_stream_argument='-'",
+            "allow_std_streams=True", "close_std_stream=False"
+        ]
+        for part in parts:
+            self.assert_in(part, repr(File()))
+
 
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
     ChoiceTestCase, BooleanTestCase, ArgumentTestCase, ArgumentsTestCase,
-    NativeStringTestCase, MappingTestCase
+    NativeStringTestCase, MappingTestCase, FileTestCase
 ])

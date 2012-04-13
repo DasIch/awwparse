@@ -56,6 +56,9 @@ Arguments
 .. autoclass:: Mapping
 
 
+.. autoclass:: File
+
+
 Actions
 -------
 
@@ -73,3 +76,16 @@ Actions
 
 
 .. autofunction:: sub
+
+
+Helpers
+-------
+
+.. autoclass:: Opener
+   :members:
+
+.. autoclass:: FileOpener
+   :members:
+
+.. autoclass:: StandardStreamOpener
+   :members:
