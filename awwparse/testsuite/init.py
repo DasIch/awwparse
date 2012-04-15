@@ -364,9 +364,9 @@ class ArgumentsTestCase(TestCase):
     def test_rewind(self):
         arguments = Arguments(["foo", "bar"])
         self.assert_equal(arguments.next(), "foo")
-        self.assert_equal(arguments.trace, ["foo"])
+        self.assert_equal(arguments.trace, [["foo"]])
         arguments.rewind()
-        self.assert_equal(arguments.trace, [])
+        self.assert_equal(arguments.trace, [[]])
         self.assert_equal(arguments.next(), "foo")
 
     def test_nonzero(self):
@@ -526,6 +526,36 @@ class CLITestCase(TestCase):
                 "Options\n"
                 "  -h, --help   Show this message\n"
                 "  -o foo\n"
+            )
+        )
+
+        stringio = StringIO()
+        cli = TestCLI(
+            application_name=u("app"),
+            stdout=stringio,
+            stderr=stringio,
+            exit=exit,
+            width=40,
+            commands={
+                "foo": Command(
+                    arguments=[String(metavar=u("a")), String(metavar=u("b"))]
+                )
+            }
+        )
+        with self.assert_raises(AssertionError):
+            cli.run(["foo", "bar"])
+        self.assert_equal(
+            stringio.getvalue(),
+            u(
+                "Error: expected b\n"
+                "Usage: app foo [-h] a b\n"
+                "\n"
+                "Positional Arguments\n"
+                "  a\n"
+                "  b\n"
+                "\n"
+                "Options\n"
+                "  -h, --help   Show this message\n"
             )
         )
 

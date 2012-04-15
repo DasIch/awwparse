@@ -11,7 +11,7 @@ import sys
 import textwrap
 from types import MethodType
 from functools import partial
-from itertools import takewhile
+from itertools import takewhile, chain
 from collections import deque
 
 import six
@@ -36,10 +36,22 @@ from awwparse.actions import store_last, append_to_list, add_to_set, add, sub
 
 
 class Arguments(object):
-    def __init__(self, arguments):
+    def __init__(self, arguments, application_name=None):
         self._arguments = iter(arguments)
         self._remaining = deque()
-        self.trace = []
+        if application_name is None:
+            self.trace = [[]]
+        else:
+            self.trace = [[application_name], []]
+
+    @property
+    def current_frame(self):
+        return self.trace[-1]
+
+    def get_used(self, excluding=0):
+        return list(chain.from_iterable(
+            self.trace if excluding == 0 else self.trace[:-excluding]
+        ))
 
     def __iter__(self):
         return self
@@ -52,11 +64,11 @@ class Arguments(object):
             argument = self._remaining.popleft()
         else:
             argument = next(self._arguments)
-        self.trace.append(argument)
+        self.current_frame.append(argument)
         return argument
 
     def rewind(self):
-        self._remaining.append(self.trace.pop())
+        self._remaining.append(self.current_frame.pop())
 
     def __nonzero__(self):
         try:
@@ -73,7 +85,7 @@ class Arguments(object):
         return "<{0}({1!r}) {2!r}>".format(
             self.__class__.__name__,
             self._arguments,
-            self.trace
+            self.get_used()
         )
 
 
@@ -299,7 +311,7 @@ class Command(object):
         )
 
     def get_usage(self, arguments=None):
-        result = [] if arguments is None else arguments.trace[:-1]
+        result = [] if arguments is None else arguments.get_used(1)
         if self.options:
             result.extend(
                 u("[{0}]").format(option.get_usage()) for option in self.options
@@ -585,6 +597,7 @@ class Command(object):
                 else:
                     while modified != previous_modified:
                         if hasattr(match, "run"):
+                            arguments.trace.append([])
                             match.run(arguments, args, kwargs)
                             return
                         kwargs = match.parse(self, kwargs, name, arguments)
@@ -865,8 +878,7 @@ class CLI(Command):
         If `passthrough_errors` (default: ``False``) is ``True``
         :exc:`CLIError`\s will not be caught.
         """
-        arguments = Arguments(arguments)
-        arguments.trace.append(self.application_name)
+        arguments = Arguments(arguments, self.application_name)
         return Command.run(
             self, arguments, passthrough_errors=passthrough_errors
         )
