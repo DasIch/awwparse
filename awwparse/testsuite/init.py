@@ -361,6 +361,12 @@ class CommandTestCase(TestCase):
 
 
 class ArgumentsTestCase(TestCase):
+    def test_get_used(self):
+        self.assert_equal(Arguments([]).get_used(), [])
+        self.assert_equal(Arguments([], "app").get_used(), ["app"])
+        arguments = Arguments(["foo", "bar", "baz"], "app")
+        self.assert_equal(arguments.get_used(), ["app"])
+
     def test_rewind(self):
         arguments = Arguments(["foo", "bar"])
         self.assert_equal(arguments.next(), "foo")
