@@ -17,6 +17,8 @@ try:
 except ImportError:
     from itertools import izip_longest as zip_longest
 
+from six.moves import builtins
+
 
 #: The golden ratio.
 GOLDEN_RATIO = (1 + math.sqrt(5)) / 2
@@ -309,3 +311,13 @@ class OrderedDict(MutableMapping, dict):
 
     def __repr__(self):
         return "{0}({1!r})".format(self.__class__.__name__, list(self.items()))
+
+
+def ensure_all(names):
+    namespace = set()
+    namespace.update(dir(builtins))
+    for frame, _, _, _, _, _ in inspect.stack():
+        namespace.update(frame.f_locals)
+        namespace.update(frame.f_globals)
+    for name in names:
+        assert name in namespace, "%r not in namespace" % name

@@ -20,7 +20,8 @@ from six.moves import reduce
 
 from awwparse.utils import (
     set_attributes_from_kwargs, force_list, get_terminal_width, golden_split,
-    set_attributes, Signature, iter_mapping, create_repr, OrderedDict
+    set_attributes, Signature, iter_mapping, create_repr, OrderedDict,
+    ensure_all
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
@@ -887,7 +888,10 @@ class CLI(Command):
 __all__ = [
     "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
-    "Last", "List", "Set", "Adder", "NativeString", "Mapping", "store_last",
-    "append_to_list", "add_to_set", "add", "sub", "File", "Opener",
-    "FileOpener", "StandardStreamOpener", "Resource"
+    "NativeString", "Mapping", "store_last", "append_to_list", "add_to_set",
+    "add", "sub", "File", "Opener", "FileOpener", "StandardStreamOpener",
+    "Resource"
 ]
+# This should probably be a test, even though I think Python should raise an
+# exception if __all__ is ill-defined, instead of ignoring it.
+ensure_all(__all__)

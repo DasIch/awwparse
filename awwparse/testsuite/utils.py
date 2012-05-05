@@ -8,7 +8,8 @@
 """
 from awwparse.utils import (
     set_attributes, set_attributes_from_kwargs, missing, force_list,
-    get_terminal_width, Signature, OrderedDict, iter_mapping, create_repr
+    get_terminal_width, Signature, OrderedDict, iter_mapping, create_repr,
+    ensure_all
 )
 from awwparse.testsuite import TestCase, make_suite, py3test
 
@@ -80,6 +81,11 @@ class UtilsTestCase(TestCase):
             create_repr("foo", ["bar", "baz"], {"spam": "eggs"}),
             "foo('bar', 'baz', spam='eggs')"
         )
+
+    def test_ensure_names(self):
+        with self.assert_raises(AssertionError):
+            ensure_all(["name_that_does_not_exist"])
+        ensure_all(["AssertionError"])
 
 
 class SignatureTestCase(TestCase):
