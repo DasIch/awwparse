@@ -13,7 +13,7 @@ from awwparse.utils import missing
 from awwparse.exceptions import (
     ArgumentMissing, CommandMissing, OptionConflict, CommandConflict,
     UnexpectedArgument, PositionalArgumentMissing, UserTypeError,
-    ArgumentConflict
+    PositionalConflict
 )
 from awwparse.testsuite import (
     TestCase, make_suite, py3test, TestCommand, TestCLI
@@ -163,7 +163,7 @@ class CommandTestCase(TestCase):
     def test_declarative(self):
         results = []
         class Foo(Command):
-            arguments = Integer(metavar="a")
+            positionals = Integer(metavar="a")
 
             def main(self, a):
                 results.append(a)
@@ -189,7 +189,7 @@ class CommandTestCase(TestCase):
         command.add_command("bar", Command())
         self.assert_equal(command.get_usage(), u("[-h] [-o foo] {bar}"))
 
-        command.add_argument(String(metavar="baz"))
+        command.add_positional(String(metavar="baz"))
         self.assert_equal(command.get_usage(), u("[-h] [-o foo] {bar} baz"))
 
     def test_add_option(self):
@@ -254,13 +254,13 @@ class CommandTestCase(TestCase):
         with self.assert_raises(CommandConflict):
             command.add_command("foobar", Command())
 
-    def test_add_argument(self):
+    def test_add_positional(self):
         command = Command()
         with self.assert_raises(ValueError):
-            command.add_argument(String())
-        command.add_argument(String(metavar=u("foo"), remaining=True))
-        with self.assert_raises(ArgumentConflict):
-            command.add_argument(String(metavar=u("bar")))
+            command.add_positional(String())
+        command.add_positional(String(metavar=u("foo"), remaining=True))
+        with self.assert_raises(PositionalConflict):
+            command.add_positional(String(metavar=u("bar")))
 
     def test_run(self):
         class TestCommand(Command):
@@ -340,9 +340,9 @@ class CommandTestCase(TestCase):
 
         B().run(["-a", "bar", "spam"])
 
-    def test_arguments(self):
+    def test_positionals(self):
         class TestCommand(Command):
-            arguments = String(metavar=u("foo"))
+            positionals = String(metavar=u("foo"))
 
             def main(self, foo):
                 assert foo == u("foo")
@@ -350,7 +350,7 @@ class CommandTestCase(TestCase):
         TestCommand().run(["foo"])
 
         class TestCommand(Command):
-            arguments = String(metavar=u("foo")), String(metavar=u("bar"))
+            positionals = String(metavar=u("foo")), String(metavar=u("bar"))
 
             def main(self, foo, bar):
                 assert foo == "foo"
@@ -397,7 +397,7 @@ class CLITestCase(TestCase):
     def test_get_usage(self):
         cli = CLI(
             application_name=u("spam"),
-            arguments=[String(metavar=u("foo"))]
+            positionals=[String(metavar=u("foo"))]
         )
         self.assert_equal(cli.get_usage(), u("spam [-h] foo"))
 
@@ -427,7 +427,7 @@ class CLITestCase(TestCase):
             application_name=u("app"),
             stdout=stringio,
             width=40,
-            arguments=[String(metavar=u("foo"))]
+            positionals=[String(metavar=u("foo"))]
         )
         cli.print_help()
         self.assert_equal(stringio.getvalue(), u(
@@ -544,7 +544,7 @@ class CLITestCase(TestCase):
             width=40,
             commands={
                 "foo": Command(
-                    arguments=[String(metavar=u("a")), String(metavar=u("b"))]
+                    positionals=[String(metavar=u("a")), String(metavar=u("b"))]
                 )
             }
         )

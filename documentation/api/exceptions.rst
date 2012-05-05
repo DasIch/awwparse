@@ -42,7 +42,7 @@ Errors that are raised as a result of (wrong) usage of the API.
 .. autoexception:: CommandConflict
    :members:
 
-.. autoexception:: ArgumentConflict
+.. autoexception:: PositionalConflict
    :members:
 
 

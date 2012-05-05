@@ -59,5 +59,5 @@ class CommandConflict(Conflict):
     pass
 
 
-class ArgumentConflict(Conflict):
+class PositionalConflict(Conflict):
     pass

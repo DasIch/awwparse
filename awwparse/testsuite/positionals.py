@@ -1,7 +1,7 @@
 # coding: utf-8
 """
-    awwparse.testsuite.arguments
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    awwparse.testsuite.positionals
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
@@ -21,10 +21,10 @@ from six import BytesIO, StringIO
 from six import u
 
 from awwparse import (
-    Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any,
+    Bytes, String, Integer, Float, Decimal, Complex, Option, Positional, Any,
     Number, Choice, Boolean, NativeString, Mapping, File, Resource
 )
-from awwparse.arguments import parse_argument_signature
+from awwparse.positionals import parse_positional_signature
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import (
     TestCase, make_suite, TestCommand, TestCLI, skip_if
@@ -32,49 +32,51 @@ from awwparse.testsuite import (
 
 
 class ArgumentsTestCase(TestCase):
-    def test_parse_argument_signature(self):
-        optionals = partial(map, lambda argument: argument.optional)
+    def test_parse_positional_signature(self):
+        optionals = partial(map, lambda positional: positional.optional)
 
         self.assert_true(all(not optional for optional in optionals(
-            parse_argument_signature((Bytes(), Bytes(), Bytes()))
+            parse_positional_signature((Bytes(), Bytes(), Bytes()))
         )))
-        arguments = parse_argument_signature([[Bytes(), [Bytes(), [Bytes()]]]])
         self.assert_true(all(optionals(
-            parse_argument_signature([[Bytes(), [Bytes(), [Bytes()]]]])
+            parse_positional_signature([[Bytes(), [Bytes(), [Bytes()]]]])
         )))
-        arguments = parse_argument_signature((Bytes(), [Bytes(), Bytes()]))
-        self.assert_true(not arguments[0].optional)
-        self.assert_true(arguments[1].optional)
-        self.assert_true(not arguments[2].optional)
+        positionals = parse_positional_signature((Bytes(), [Bytes(), Bytes()]))
+        self.assert_true(not positionals[0].optional)
+        self.assert_true(positionals[1].optional)
+        self.assert_true(not positionals[2].optional)
 
 
-class ArgumentTestCase(TestCase):
+class PositionalTestCase(TestCase):
     def test_repr(self):
-        r = repr(Argument())
+        r = repr(Positional())
         parts = [
             "metavar=None", "optional=False", "remaining=False", "help=None"
         ]
         for part in parts:
             self.assert_in(part, r)
 
-def make_parse_test(argument, single, remaining, optional):
+def make_parse_test(positional, single, remaining, optional):
     def parse_test(self):
         command = TestCommand()
-        command.add_option("foo", Option("-a", argument()))
+        command.add_option("foo", Option("-a", positional()))
         for args, expected in single:
             self.assert_equal(
                 command.run(["-a"] + args),
                 ((), {"foo": expected})
             )
 
-        command.add_option("bar", Option("-b", argument(remaining=True)))
+        command.add_option("bar", Option("-b", positional(remaining=True)))
         for args, expected in remaining:
             self.assert_equal(
                 command.run(["-b"] + args, passthrough_errors=True),
                 ((), {"bar": expected})
             )
 
-        command.add_option("baz", Option("-c", argument(), argument(optional=True)))
+        command.add_option(
+            "baz",
+            Option("-c", positional(), positional(optional=True))
+        )
         for args, expected in optional:
             self.assert_equal(
                 command.run(["-c"] + args, passthrough_errors=True),
@@ -438,6 +440,6 @@ class ResourceTestCase(TestCase):
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
-    ChoiceTestCase, BooleanTestCase, ArgumentTestCase, ArgumentsTestCase,
+    ChoiceTestCase, BooleanTestCase, PositionalTestCase, ArgumentsTestCase,
     NativeStringTestCase, MappingTestCase, FileTestCase, ResourceTestCase
 ])

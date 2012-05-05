@@ -25,12 +25,12 @@ from awwparse.utils import (
 )
 from awwparse.exceptions import (
     CommandMissing, OptionConflict, CommandConflict, UnexpectedArgument,
-    ArgumentConflict, PositionalArgumentMissing, CLIError, EndOptionParsing
+    PositionalConflict, PositionalArgumentMissing, CLIError, EndOptionParsing
 )
 
-from awwparse.arguments import (
+from awwparse.positionals import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
-    Argument, Boolean, NativeString, parse_argument_signature, Mapping, File,
+    Positional, Boolean, NativeString, parse_positional_signature, Mapping, File,
     Opener, FileOpener, StandardStreamOpener, Resource
 )
 from awwparse.actions import store_last, append_to_list, add_to_set, add, sub
@@ -112,8 +112,8 @@ class Command(object):
     options = []
     #: A mapping of command names to commands.
     commands = {}
-    #: An arguments signature.
-    arguments = ()
+    #: A positionals signature.
+    positionals = ()
     #: A help message explaining this command.
     help = None
 
@@ -128,7 +128,7 @@ class Command(object):
             annotation = lookup_annotation(name)
             if isinstance(annotation, Option):
                 command.add_option(name, annotation)
-            elif isinstance(annotation, Argument):
+            elif isinstance(annotation, Positional):
                 if name in signature.defaults:
                     command.add_option(
                         name,
@@ -137,7 +137,7 @@ class Command(object):
                     )
                 else:
                     annotation.metavar = name
-                    command.add_argument(annotation)
+                    command.add_positional(annotation)
             else:
                 raise ValueError(
                     "unexpected annotation: {0!r}".format(annotation)
@@ -145,17 +145,17 @@ class Command(object):
         if signature.arbitary_positional_arguments is not None:
             name = signature.arbitary_positional_arguments
             annotation = lookup_annotation(name)
-            if isinstance(annotation, Argument):
+            if isinstance(annotation, Positional):
                 annotation.metavar = name
                 annotation.remaining = True
-                command.add_argument(annotation)
+                command.add_positional(annotation)
             else:
                 raise ValueError(
                     "unexpected annotation: {0!r}".format(annotation)
                 )
         for name in signature.keyword_arguments:
             annotation = lookup_annotation(name)
-            if isinstance(annotation, Argument):
+            if isinstance(annotation, Positional):
                 command.add_option(
                     name,
                     Option("-" + name[0], "--" + name[1:], annotation),
@@ -171,21 +171,20 @@ class Command(object):
         return command
 
     @classmethod
-    def from_function(cls, *arguments):
+    def from_function(cls, *positionals):
         """
-        Takes optional :class:`~Argument` objects corresponding to the
+        Takes optional :class:`~Positional` objects corresponding to the
         arguments in the signature of the function passed to the returned
         function which returns a :class:`Command` object for the given
-        annotated function. The :class:`~Argument` objects serve as alternative
-        to annotations which are not available in Python 2.x.
+        annotated function. The :class:`~Positional` objects serve as
+        alternative to annotations which are not available in Python 2.x.
 
         Positional arguments are turned into arguments, keyword arguments are
         turned into options and arbitary positional arguments are turned into
         an argument that takes all remaining ones.
 
         Each argument has to be given an annotation. Allowed annotations are
-        :class:`~awwparse.arguments.Argument` objects and
-        :class:`~awwparse.arguments.ContainerArgument` objects. For keyword
+        :class:`~awwparse.positionals.Positional` objects. For keyword
         arguments you can also provide an :class:`Option` object.
 
         If an annotation is missing or has a wrong type a :exc:`ValueError` is
@@ -194,7 +193,7 @@ class Command(object):
         def decorate(function):
             signature = Signature.from_function(function)
             if not signature.annotations:
-                signature.annotations = dict(zip(signature.names, arguments))
+                signature.annotations = dict(zip(signature.names, positionals))
             command = type(
                 function.__name__,
                 (cls, ),
@@ -209,7 +208,7 @@ class Command(object):
         return decorate
 
     @classmethod
-    def from_method(cls, *arguments):
+    def from_method(cls, *positionals):
         """
         Like :meth:`from_function` but for methods.
 
@@ -219,7 +218,7 @@ class Command(object):
         def decorate(method):
             signature = Signature.from_method(method)
             if not signature.annotations:
-                method.__annotations__ = dict(zip(signature.names, arguments))
+                method.__annotations__ = dict(zip(signature.names, positionals))
             command = type(
                 method.__name__,
                 (cls, ),
@@ -232,7 +231,7 @@ class Command(object):
             return command
         return decorate
 
-    def __init__(self, options=None, commands=None, arguments=None):
+    def __init__(self, options=None, commands=None, positionals=None):
         self.options = OrderedDict()
         self.add_option("__awwparse_help", HelpOption())
         self.add_options(self.__class__.options)
@@ -244,12 +243,12 @@ class Command(object):
         if commands is not None:
             self.add_commands(commands)
 
-        self.arguments = parse_argument_signature(
-            force_list(self.__class__.arguments),
+        self.positionals = parse_positional_signature(
+            force_list(self.__class__.positionals),
             require_metavar=True
         )
-        if arguments is not None:
-            self.add_arguments(arguments)
+        if positionals is not None:
+            self.add_positionals(positionals)
 
         self.parent = None
 
@@ -319,8 +318,8 @@ class Command(object):
             )
         if self.commands:
             result.append(u("{%s}") % u(",").join(self.commands))
-        if self.arguments:
-            result.extend(argument.usage for argument in self.arguments)
+        if self.positionals:
+            result.extend(positional.usage for positional in self.positionals)
         return u(" ").join(result)
 
     def add_option(self, identifier, option, force=False,
@@ -408,30 +407,30 @@ class Command(object):
         for name, command in iter_mapping(commands):
             self.add_command(name, command)
 
-    def add_argument(self, argument):
+    def add_positional(self, positional):
         """
-        Adds the given `argument` to the command.
+        Adds the given `positional` to the command.
 
-        May raise an :exc:`ArgumentConflict` if last argument takes all
-        remaining command line arguments - in which case the added argument
+        May raise an :exc:`PositionalConflict` if last positional takes all
+        remaining command line arguments - in which case the added positional
         would never be reached.
         """
-        if argument.metavar is None:
-            raise ValueError("metavar not set on: {0!r}".format(argument))
-        if self.arguments and self.arguments[-1].remaining:
-            raise ArgumentConflict(
-                u("last argument {0} takes all remaining arguments").format(
-                    self.arguments[-1]
+        if positional.metavar is None:
+            raise ValueError("metavar not set on: {0!r}".format(positional))
+        if self.positionals and self.positionals[-1].remaining:
+            raise PositionalConflict(
+                u("last positional {0} takes all remaining arguments").format(
+                    self.positionals[-1]
                 )
             )
-        self.arguments.append(argument)
+        self.positionals.append(positional)
 
-    def add_arguments(self, arguments):
+    def add_positionals(self, positionals):
         """
-        Adds `arguments` from a given iterable.
+        Adds `positionals` from a given iterable.
         """
-        for argument in arguments:
-            self.add_argument(argument)
+        for positional in positionals:
+            self.add_positional(positional)
 
     def copy(self):
         return self.__class__()
@@ -485,8 +484,8 @@ class Command(object):
         self._print_newline()
         if self.help is not None:
             self._print_message(self.help)
-        if self.arguments:
-            self._print_arguments_help()
+        if self.positionals:
+            self._print_positionals_help()
             if self.options or self.commands:
                 self._print_newline()
         if self.options:
@@ -529,10 +528,13 @@ class Command(object):
             for line in output
         ) + u("\n"))
 
-    def _print_arguments_help(self):
+    def _print_positionals_help(self):
         self._print_columns(
             u("Positional Arguments"),
-            ((argument.metavar, argument.help) for argument in self.arguments)
+            (
+                (positional.metavar, positional.help)
+                for positional in self.positionals
+            )
         )
 
     def _print_options_help(self):
@@ -575,7 +577,7 @@ class Command(object):
             passthrough_errors=False):
         if not isinstance(arguments, Arguments):
             arguments = Arguments(arguments)
-        expected_positionals = iter(self.arguments)
+        expected_positionals = iter(self.positionals)
         args = [] if default_args is None else default_args
         kwargs = {}
         if default_kwargs:
@@ -585,11 +587,12 @@ class Command(object):
                 previous_modified = argument
                 try:
                     name, match, modified = self.get_match(argument)
-                except UnexpectedArgument as unexcepted_argument:
+                except UnexpectedArgument:
+                    exc_info = sys.exc_info()
                     try:
                         positional = next(expected_positionals)
                     except StopIteration:
-                        raise unexcepted_argument
+                        six.reraise(*exc_info)
                     else:
                         arguments.rewind()
                         args = positional.parse_as_positional(
@@ -617,25 +620,31 @@ class Command(object):
                             option=positional
                         )
                     )
-        except CLIError as error:
+        except CLIError:
             if passthrough_errors:
                 raise
-            self.handle_error(error, arguments)
+            self.handle_error(sys.exc_info(), arguments)
             assert False, "exit should have aborted execution"
         return self.main(*args, **kwargs)
 
-    def handle_error(self, error, arguments=None):
+    def handle_error(self, exc_info, arguments=None):
+        exc_type, exc_value, traceback = exc_info
         try:
             self.stderr
         except AttributeError:
-            raise error
-        self.print_error(error)
+            six.reraise(exc_type, exc_value, traceback)
+        self.print_error(exc_value)
         self.print_help(arguments)
-        self.exit(error.exit_code)
+        self.exit(exc_value.exit_code)
 
     def main(self, *args, **kwargs):
         if self.commands:
-            self.handle_error(CommandMissing(u("expected a command")))
+            # A quick hack to get exc_info for the exception. There is probably
+            # a better way to do this.
+            try:
+                raise CommandMissing(u("expected a command"))
+            except CommandMissing:
+                self.handle_error(sys.exc_info())
         else:
             raise NotImplementedError(
                 "{0}.main(*{1!r}, **{2!r})".format(
@@ -662,14 +671,14 @@ class Option(object):
     prefix_chars = frozenset(["-", "+"])
 
     def __init__(self, *signature, **kwargs):
-        short, long, arguments = self._parse_signature(signature)
+        short, long, positionals = self._parse_signature(signature)
         if short is None and long is None:
             raise TypeError("A short or a long has to be passed")
         if short is not None and len(short) != 2:
             raise ValueError("A short has to be two characters long")
         self.short = short
         self.long = long
-        self.arguments = arguments
+        self.positionals = positionals
         set_attributes_from_kwargs(self, kwargs, {
             "action": store_last,
             "help": None
@@ -686,13 +695,13 @@ class Option(object):
         if isinstance(signature[0], str) and isinstance(signature[1], str):
             short = signature[0]
             long = signature[1]
-            arguments = signature[2:]
+            positionals = signature[2:]
         elif isinstance(signature[0], str):
             if len(signature[0]) == 2:
                 short = signature[0]
             else:
                 long = signature[0]
-            arguments = signature[1:]
+            positionals = signature[1:]
         else:
             raise TypeError(
                 "expected short or long as first argument,"
@@ -700,28 +709,30 @@ class Option(object):
                     signature[0]
                 )
             )
-        arguments = parse_argument_signature(arguments)
-        if arguments[0].optional:
+        positionals = parse_positional_signature(positionals)
+        if positionals[0].optional:
             raise ValueError(
-                "first argument must not be optional: {0!r}".format(
-                    arguments[0]
+                "first positional must not be optional: {0!r}".format(
+                    positionals[0]
                 )
             )
-        return short, long, arguments
+        return short, long, positionals
 
     def setdefault_metavars(self, metavar):
         if isinstance(metavar, six.binary_type):
             metavar = metavar.decode("utf-8")
-        for argument in self.arguments:
-            if argument.metavar is None:
-                argument.metavar = metavar
+        for positional in self.positionals:
+            if positional.metavar is None:
+                positional.metavar = metavar
 
     def copy(self):
         option = self.__class__.__new__(self.__class__)
         set_attributes(option, {
             "short": self.short,
             "long": self.long,
-            "arguments": [argument.copy() for argument in self.arguments],
+            "positionals": [
+                positional.copy() for positional in self.positionals
+            ],
             "action": self.action,
             "help": self.help
         })
@@ -743,7 +754,7 @@ class Option(object):
             return root, current
 
         def render(tree, _root=True):
-            if isinstance(tree, Argument):
+            if isinstance(tree, Positional):
                 return tree.usage
             else:
                 nodes = u(" ").join(render(node, _root=False) for node in tree)
@@ -751,7 +762,7 @@ class Option(object):
                     return nodes
                 return u("[{0}]").format(nodes)
 
-        usage = render(reduce(step, self.arguments, ([], ) * 2)[0])
+        usage = render(reduce(step, self.positionals, ([], ) * 2)[0])
         if using == "both" and self.short and self.long:
             return (
                 u("{0} {1}").format(self.short, usage).strip() +
@@ -768,7 +779,7 @@ class Option(object):
         return usage.format(
             short=self.short,
             long=self.long,
-            usage=render(reduce(step, self.arguments, ([], ) * 2)[0])
+            usage=render(reduce(step, self.positionals, ([], ) * 2)[0])
         ).strip()
 
     def get_prefix(self, argument):
@@ -786,19 +797,19 @@ class Option(object):
 
     def parse(self, command, namespace, name, arguments):
         result = []
-        for argument in self.arguments:
+        for positional in self.positionals:
             try:
-                result.append(argument.parse(command, arguments))
+                result.append(positional.parse(command, arguments))
             except EndOptionParsing:
                 break
-        result = result if len(self.arguments) > 1 else result[0]
+        result = result if len(self.positionals) > 1 else result[0]
         namespace[name] = self.action(namespace.get(name), result)
         return namespace
 
     def __repr__(self):
         return create_repr(
             self.__class__.__name__,
-            list(filter(None, [self.short, self.long])) + self.arguments,
+            list(filter(None, [self.short, self.long])) + self.positionals,
             {
                 "help": self.help
         })
@@ -847,12 +858,12 @@ class CLI(Command):
     #: message (default: 2).
     section_indent = 2
 
-    def __init__(self, options=None, commands=None, arguments=None,
+    def __init__(self, options=None, commands=None, positionals=None,
                  application_name=sys.argv[0], usage=None, stdin=sys.stdin,
                  stdout=sys.stdout, stderr=sys.stderr, exit=sys.exit,
                  width=None):
         Command.__init__(
-            self, options=options, commands=commands, arguments=arguments
+            self, options=options, commands=commands, positionals=positionals
         )
         self.application_name = application_name
         self.usage = usage
@@ -886,7 +897,7 @@ class CLI(Command):
 
 
 __all__ = [
-    "CLI", "Command", "Option", "Argument", "String", "Bytes", "Integer",
+    "CLI", "Command", "Option", "Positional", "String", "Bytes", "Integer",
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
     "NativeString", "Mapping", "store_last", "append_to_list", "add_to_set",
     "add", "sub", "File", "Opener", "FileOpener", "StandardStreamOpener",

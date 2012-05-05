@@ -1,7 +1,7 @@
 # coding: utf-8
 """
-    awwparse.arguments
-    ~~~~~~~~~~~~~~~~~~
+    awwparse.positionals
+    ~~~~~~~~~~~~~~~~~~~~
 
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
@@ -30,23 +30,23 @@ from awwparse.exceptions import (
 )
 
 
-def parse_argument_signature(arguments, require_metavar=False, _root=True):
+def parse_positional_signature(positionals, require_metavar=False, _root=True):
     result = []
     if not _root:
-        arguments[0].optional = True
-    for argument in arguments:
-        if isinstance(argument, Argument):
-            if require_metavar and argument.metavar is None:
-                raise ValueError("metavar not set on: {0!r}".format(argument))
-            result.append(argument)
+        positionals[0].optional = True
+    for positional in positionals:
+        if isinstance(positional, Positional):
+            if require_metavar and positional.metavar is None:
+                raise ValueError("metavar not set on: {0!r}".format(positional))
+            result.append(positional)
         else:
-            result.extend(parse_argument_signature(
-                argument, require_metavar=require_metavar, _root=False
+            result.extend(parse_positional_signature(
+                positional, require_metavar=require_metavar, _root=False
             ))
     return result
 
 
-class Argument(object):
+class Positional(object):
     def __init__(self, metavar=None, optional=False, remaining=False,
                  help=None):
         self.metavar = metavar
@@ -100,14 +100,14 @@ class Argument(object):
         return create_repr(self.__class__.__name__, kwargs=self.copy_args())
 
 
-class EncodingArgument(Argument):
+class EncodingPositional(Positional):
     error_method = "replace"
 
     def get_encoding(self, command):
         return getattr(command, "stdin.encoding", locale.getpreferredencoding())
 
 
-class Bytes(EncodingArgument):
+class Bytes(EncodingPositional):
     """
     Represents a binary argument.
     """
@@ -139,7 +139,7 @@ class Bytes(EncodingArgument):
             raise
 
 
-class String(EncodingArgument):
+class String(EncodingPositional):
     """
     Represents a string argument.
     """
@@ -171,7 +171,7 @@ class String(EncodingArgument):
             raise
 
 
-class NativeString(Argument):
+class NativeString(Positional):
     """
     Represents a "native" string argument.
     """
@@ -186,7 +186,7 @@ class NativeString(Argument):
             raise
 
 
-class ConverterBase(Argument):
+class ConverterBase(Positional):
     type = None
     type_conversion_exception = ValueError
     error_message = u("")
@@ -245,28 +245,30 @@ class Complex(ConverterBase):
 
 class Any(ConverterBase):
     """
-    Represents an argument of one of the given `arguments`.
+    Represents an argument of one of the given `positionals`.
 
-    Raises a :exc:`UserTypeError` with the given `error_message` if no argument
-    successfully parses.
+    Raises a :exc:`UserTypeError` with the given `error_message` if no
+    positional successfully parses.
     """
-    def __init__(self, arguments, error_message, **kwargs):
+    def __init__(self, positionals, error_message, **kwargs):
         ConverterBase.__init__(self, **kwargs)
-        self.arguments = arguments
+        self.positionals = positionals
         self.error_message = error_message
 
     def copy_args(self):
         args = ConverterBase.copy_args(self)
         args.update({
-            "arguments": [argument.copy() for argument in self.arguments],
+            "positionals": [
+                positional.copy() for positional in self.positionals
+            ],
             "error_message": self.error_message
         })
         return args
 
     def convert(self, string):
-        for argument in self.arguments:
+        for positional in self.positionals:
             try:
-                return argument.convert(string)
+                return positional.convert(string)
             except UserTypeError:
                 pass
         raise UserTypeError(self.error_message.format(argument=string))
@@ -274,7 +276,7 @@ class Any(ConverterBase):
     def __repr__(self):
         return create_repr(
             self.__class__.__name__,
-            [self.arguments, self.error_message],
+            [self.positionals, self.error_message],
             ConverterBase.copy_args(self)
         )
 
@@ -295,7 +297,7 @@ class Number(Any):
     def copy_args(self):
         args = Any.copy_args(self)
         args.update({"use_decimal": self.use_decimal})
-        del args["arguments"]
+        del args["positionals"]
         del args["error_message"]
         return args
 
@@ -303,12 +305,12 @@ class Number(Any):
         return create_repr(self.__class__.__name__, kwargs=self.copy_args())
 
 
-class Boolean(Argument):
+class Boolean(Positional):
     """
     Represents a boolean.
     """
     def __init__(self, store=True, **kwargs):
-        Argument.__init__(self, **kwargs)
+        Positional.__init__(self, **kwargs)
         self.store = store
 
     @property
@@ -316,7 +318,7 @@ class Boolean(Argument):
         return u("")
 
     def copy_args(self):
-        args = Argument.copy_args(self)
+        args = Positional.copy_args(self)
         args.update({"store": self.store})
         return args
 
@@ -327,18 +329,18 @@ class Boolean(Argument):
         return create_repr(self.__class__.__name__, kwargs=self.copy_args())
 
 
-class Choice(Argument):
+class Choice(Positional):
     """
     Represents a choice between `choices` where the choice is something of
     `argument`.
     """
     def __init__(self, argument, choices, **kwargs):
-        Argument.__init__(self, **kwargs)
+        Positional.__init__(self, **kwargs)
         self.argument = argument
         self.choices = choices
 
     def copy_args(self):
-        args = Argument.copy_args(self)
+        args = Positional.copy_args(self)
         args.update({
             "argument": self.argument.copy(),
             "choices": self.choices
@@ -373,29 +375,29 @@ class Choice(Argument):
         return create_repr(
             self.__class__.__name__,
             [self.argument, self.choices],
-            Argument.copy_args(self)
+            Positional.copy_args(self)
         )
 
 
-class Mapping(Argument):
+class Mapping(Positional):
     """
     Like :class:`Choice` but uses a mapping and returns the value.
     """
-    def __init__(self, argument, mapping, **kwargs):
-        Argument.__init__(self, **kwargs)
-        self.argument = argument
+    def __init__(self, positional, mapping, **kwargs):
+        Positional.__init__(self, **kwargs)
+        self.positional = positional
         self.mapping = mapping
 
     def copy_args(self):
-        args = Argument.copy_args(self)
+        args = Positional.copy_args(self)
         args.update({
-            "argument": self.argument.copy(),
+            "positional": self.positional.copy(),
             "mapping": self.mapping.copy()
         })
         return args
 
     def parse_single(self, command, arguments):
-        parsed = self.argument.parse(command, arguments)
+        parsed = self.positional.parse(command, arguments)
         try:
             return self.mapping[parsed]
         except KeyError:
@@ -420,7 +422,7 @@ class Mapping(Argument):
     def __repr__(self):
         return create_repr(
             self.__class__.__name__,
-            [self.argument, self.mapping],
+            [self.positional, self.mapping],
             {
                 "metavar": self.metavar,
                 "optional": self.optional,
@@ -430,7 +432,7 @@ class Mapping(Argument):
         )
 
 
-class File(Argument):
+class File(Positional):
     """
     Represents a file or standard stream (`sys.std{in,out}`) and returns an
     :class:`Opener` object.
@@ -461,7 +463,7 @@ class File(Argument):
     def __init__(self, mode="r", buffering=-1, encoding=None, errors=None,
                  newline=None, opener=None, std_stream_argument="-",
                  allow_std_streams=True, close_std_stream=False, **kwargs):
-        Argument.__init__(self, **kwargs)
+        Positional.__init__(self, **kwargs)
         if allow_std_streams and mode not in set(["r", "w"]):
             raise ValueError(
                 "invalid mode for standard stream: {0!r}".format(mode)
@@ -477,7 +479,7 @@ class File(Argument):
         self.close_std_stream = close_std_stream
 
     def copy_args(self):
-        args = Argument.copy_args(self)
+        args = Positional.copy_args(self)
         args.update({
             "mode": self.mode,
             "buffering": self.buffering,
@@ -536,7 +538,7 @@ class File(Argument):
         return create_repr(self.__class__.__name__, [], self.copy_args())
 
 
-class Resource(Argument):
+class Resource(Positional):
     """
     Represents a resource and returns an :class:`Opener` object.
 
@@ -545,12 +547,12 @@ class Resource(Argument):
      - `http`
     """
     def __init__(self, schemes=None, opener_arguments=None, **kwargs):
-        Argument.__init__(self, **kwargs)
+        Positional.__init__(self, **kwargs)
         self.schemes = schemes
         self.opener_arguments = opener_arguments
 
     def copy_args(self):
-        args = Argument.copy_args(self)
+        args = Positional.copy_args(self)
         if self.schemes is None:
             schemes = self.schemes
         else:

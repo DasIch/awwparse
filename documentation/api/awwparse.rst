@@ -16,8 +16,8 @@
    :members:
 
 
-Arguments
----------
+Positionals
+-----------
 
 
 .. autoclass:: Bytes
