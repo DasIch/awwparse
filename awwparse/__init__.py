@@ -609,8 +609,8 @@ class Command(object):
             else:
                 if not positional.optional:
                     raise PositionalArgumentMissing(
-                        u("expected {option.metavar}").format(
-                            option=positional
+                        u("expected {positional.metavar}").format(
+                            positional=positional
                         )
                     )
         except CLIError:
