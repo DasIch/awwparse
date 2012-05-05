@@ -11,9 +11,18 @@ import locale
 import codecs
 import decimal
 from abc import ABCMeta, abstractmethod
+try:
+    from urllib.parse import urlparse
+except:
+    from urlparse import urlparse
 
 import six
 from six import u
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 from awwparse.utils import create_repr
 from awwparse.exceptions import (
@@ -527,6 +536,58 @@ class File(Argument):
         return create_repr(self.__class__.__name__, [], self.copy_args())
 
 
+class Resource(Argument):
+    """
+    Represents a resource and returns an :class:`Opener` object.
+
+    Schemes:
+     - `file`
+     - `http`
+    """
+    def __init__(self, schemes=None, opener_arguments=None, **kwargs):
+        Argument.__init__(self, **kwargs)
+        self.schemes = schemes
+        self.opener_arguments = opener_arguments
+
+    def copy_args(self):
+        args = Argument.copy_args(self)
+        if self.schemes is None:
+            schemes = self.schemes
+        else:
+            schemes = self.schemes.copy()
+        if self.opener_arguments is None:
+            opener_arguments = self.opener_arguments
+        else:
+            opener_arguments = dict(
+                (scheme, (args, kwargs.copy()))
+                for (scheme, (args, kwargs)) in self.opener_arguments.items()
+        )
+        args.update({
+            "schemes": schemes,
+            "opener_arguments": opener_arguments
+        })
+        return args
+
+    def parse(self, command, arguments):
+        if self.remaining:
+            result = []
+            while arguments:
+                result.append(self.parse_single(command, arguments))
+            return result
+        try:
+            return self.parse_single(command, arguments)
+        except ArgumentMissing:
+            if self.optional:
+                raise EndOptionParsing()
+            raise
+
+    def parse_single(self, command, arguments):
+        argument = self.get_next_argument(command, arguments)
+        return SchemeDispatchingOpener(
+            argument, self.schemes, self.opener_arguments
+        )
+
+
 class Opener(object):
     """
     A base class for context managers that acquire and release resources.
@@ -658,3 +719,47 @@ class StandardStreamOpener(Opener):
                 "errors": self.errors
             }
         )
+
+
+class HTTPRequestOpener(Opener):
+    def __init__(self, url, **kwargs):
+        if requests is None:
+            raise RuntimeError("requires 'requests' to be installed")
+        self.url = url
+        self.kwargs = kwargs
+        headers = self.kwargs.setdefault("headers", {})
+        headers.setdefault("User-Agent", "Awwparse/0.1-dev")
+
+    def acquire_resource(self):
+        return requests.get(self.url, **self.kwargs)
+
+    def release_resource(self, response):
+        # response objects cannot be closed
+        pass
+
+
+class SchemeDispatchingOpener(Opener):
+    fallback_scheme = "file"
+    default_schemes = {
+        "file": FileOpener,
+        "http": HTTPRequestOpener
+    }
+
+    def __init__(self, resource, schemes=None, opener_arguments=None):
+        if schemes is None:
+            self.schemes = self.default_schemes.copy()
+        else:
+            self.schemes = schemes
+        components = urlparse(resource)
+        scheme = components.scheme or self.fallback_scheme
+        if scheme == "file":
+            resource = components.netloc + components.path
+        opener_arguments = {} if opener_arguments is None else opener_arguments
+        args, kwargs = opener_arguments.get(scheme, ((), {}))
+        self.opener = self.schemes[scheme](resource, *args, **kwargs)
+
+    def acquire_resource(self):
+        return self.opener.acquire_resource()
+
+    def release_resource(self, resource):
+        self.opener.release_resource(resource)

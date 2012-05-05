@@ -30,7 +30,7 @@ from awwparse.exceptions import (
 from awwparse.arguments import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
     Argument, Boolean, NativeString, parse_argument_signature, Mapping, File,
-    Opener, FileOpener, StandardStreamOpener
+    Opener, FileOpener, StandardStreamOpener, Resource
 )
 from awwparse.actions import store_last, append_to_list, add_to_set, add, sub
 
@@ -889,5 +889,5 @@ __all__ = [
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
     "Last", "List", "Set", "Adder", "NativeString", "Mapping", "store_last",
     "append_to_list", "add_to_set", "add", "sub", "File", "Opener",
-    "FileOpener", "StandardStreamOpener"
+    "FileOpener", "StandardStreamOpener", "Resource"
 ]

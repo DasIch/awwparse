@@ -127,5 +127,8 @@ def py3test(function):
         return function
 
 
+skip_if = unittest.skipIf
+
+
 def main():
     unittest.main(testLoader=TestLoader(), defaultTest="suite")

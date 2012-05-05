@@ -8,7 +8,13 @@
 """
 import os
 import decimal
+import json
 from functools import partial
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 import six
 from six import BytesIO, StringIO
@@ -16,11 +22,13 @@ from six import u
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Argument, Any,
-    Number, Choice, Boolean, NativeString, Mapping, File
+    Number, Choice, Boolean, NativeString, Mapping, File, Resource
 )
 from awwparse.arguments import parse_argument_signature
 from awwparse.exceptions import UserTypeError
-from awwparse.testsuite import TestCase, make_suite, TestCommand, TestCLI
+from awwparse.testsuite import (
+    TestCase, make_suite, TestCommand, TestCLI, skip_if
+)
 
 
 class ArgumentsTestCase(TestCase):
@@ -397,9 +405,39 @@ class FileTestCase(TestCase):
             self.assert_in(part, repr(File()))
 
 
+class ResourceTestCase(TestCase):
+    def test_parse_file(self):
+        cli = TestCLI(options=[("foo", Option("-o", Resource()))])
+        try:
+            test_name = "ResourceTestCase.test_parse_local.txt"
+            with open(test_name, "wb") as f:
+                f.write(b"foobar")
+            opener = cli.run(["-o", "file://" + test_name])[1]["foo"]
+            with opener as f:
+                self.assert_equal(f.read(), "foobar")
+        finally:
+            os.remove(test_name)
+
+    @skip_if(requests is None, "requires requests")
+    def test_parse_http(self):
+        cli = TestCLI(options=[("foo", Option("-o", Resource()))])
+        opener = cli.run(["-o", "http://httpbin.org/user-agent"])[1]["foo"]
+        with opener as response:
+            self.assert_equal(
+                json.loads(response.content),
+                {u("user-agent"): u("Awwparse/0.1-dev")}
+            )
+
+    @skip_if(requests is not None, "requires requests not to be installed")
+    def test_parse_http_fails(self):
+        cli = TestCLI(options=[("foo", Option("-o", Resource()))])
+        with self.assert_raises(RuntimeError):
+            cli.run(["-o", "http://httpbin.org"])
+
+
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
     ChoiceTestCase, BooleanTestCase, ArgumentTestCase, ArgumentsTestCase,
-    NativeStringTestCase, MappingTestCase, FileTestCase
+    NativeStringTestCase, MappingTestCase, FileTestCase, ResourceTestCase
 ])

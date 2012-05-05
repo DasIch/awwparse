@@ -59,6 +59,9 @@ Arguments
 .. autoclass:: File
 
 
+.. autoclass:: Resource
+
+
 Actions
 -------
 
