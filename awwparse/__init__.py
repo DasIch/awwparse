@@ -444,13 +444,6 @@ class Command(object):
     def is_command(self, argument):
         return argument in self.commands
 
-    def strip_prefix(self, argument):
-        prefixes = self.option_prefixes | self.abbreviated_option_prefixes
-        for prefix in prefixes:
-            if argument.startswith(prefix):
-                return argument.lstrip(prefix)
-        return argument
-
     def _print_message(self, message, prefix=None, stream=None):
         if prefix is not None:
             message = u("{0}{1}").format(prefix, message)
