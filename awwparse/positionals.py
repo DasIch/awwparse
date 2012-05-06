@@ -432,7 +432,7 @@ class Mapping(Positional):
         )
 
 
-class File(Positional):
+class LocalResource(Positional):
     """
     Represents a file or standard stream (`sys.std{in,out}`) and returns an
     :class:`Opener` object.
