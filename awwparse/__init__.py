@@ -765,7 +765,7 @@ class Option(object):
         else:
             return u("{0} {{0}}").format(
                 self.short if using == "short" and self.short or
-                                using in set(["long", "both"]) and not self.long
+                              using in set(["long", "both"]) and not self.long
                 else self.long
             ).format(usage)
 
