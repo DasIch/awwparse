@@ -558,10 +558,9 @@ class LocalResource(Positional):
             raise
 
     def parse_single(self, command, arguments):
-        argument = self.get_next_argument(command, arguments)
         return LocalResourceOpener(
             command,
-            argument,
+            self.get_next_argument(command, arguments),
             mode=self.mode,
             buffering=self.buffering,
             encoding=self.encoding,
@@ -624,9 +623,11 @@ class Resource(Positional):
             raise
 
     def parse_single(self, command, arguments):
-        argument = self.get_next_argument(command, arguments)
         return SchemeDispatchingOpener(
-            command, argument, self.schemes, self.opener_arguments
+            command,
+            self.get_next_argument(command, arguments),
+            self.schemes,
+            self.opener_arguments
         )
 
 
