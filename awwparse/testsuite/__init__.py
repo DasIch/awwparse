@@ -7,11 +7,15 @@
     :license: BSD, see LICENSE.rst for details
 """
 import re
+import os
+import uuid
 try:
     import unittest2 as unittest
 except ImportError:
     import unittest
 import textwrap
+import tempfile
+from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 
@@ -128,6 +132,22 @@ def py3test(function):
 
 
 skip_if = unittest.skipIf
+
+
+def get_test_file_path(test_name):
+    return os.path.join(
+        tempfile.gettempdir(),
+        "{0}-{1}".format(test_name, uuid.uuid4().hex)
+    )
+
+
+@contextmanager
+def file_cleaner(paths):
+    try:
+        yield
+    finally:
+        for path in paths:
+            os.remove(path)
 
 
 def main():

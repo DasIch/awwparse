@@ -6,9 +6,8 @@
     :copyright: 2012 by Daniel Neuhäuser
     :license: BSD, see LICENSE.rst for details
 """
-import os
-import decimal
 import json
+import decimal
 from functools import partial
 
 try:
@@ -27,7 +26,8 @@ from awwparse import (
 from awwparse.positionals import parse_positional_signature
 from awwparse.exceptions import UserTypeError
 from awwparse.testsuite import (
-    TestCase, make_suite, TestCommand, TestCLI, skip_if
+    TestCase, make_suite, TestCommand, TestCLI, skip_if, get_test_file_path,
+    file_cleaner
 )
 
 
@@ -371,8 +371,10 @@ class FileTestCase(TestCase):
             File(mode="r+")
         File(mode="r+", allow_std_streams=False)
 
-        try:
-            test_file_name = "FileTestCase.test_parse.txt"
+        test_file_path = get_test_file_path(
+            "awwparse.testsuite.positionals.FileTestCase.test_parse"
+        )
+        with file_cleaner([test_file_path]):
             cli = TestCLI(
                 options=[
                     ("foo", Option(
@@ -380,7 +382,7 @@ class FileTestCase(TestCase):
                     )
                 ]
             )
-            opener = cli.run(["-o", test_file_name])[1]["foo"]
+            opener = cli.run(["-o", test_file_path])[1]["foo"]
             with opener as file:
                 file.write(b"foobar")
 
@@ -391,12 +393,9 @@ class FileTestCase(TestCase):
                     )
                 ]
             )
-            opener = cli.run(["-o", test_file_name])[1]["foo"]
+            opener = cli.run(["-o", test_file_path])[1]["foo"]
             with opener as file:
                 self.assert_equal(file.read(), b"foobar")
-        finally:
-            os.remove(test_file_name)
-
 
     def test_repr(self):
         parts = [
@@ -411,15 +410,15 @@ class FileTestCase(TestCase):
 class ResourceTestCase(TestCase):
     def test_parse_file(self):
         cli = TestCLI(options=[("foo", Option("-o", Resource()))])
-        try:
-            test_name = "ResourceTestCase.test_parse_local.txt"
-            with open(test_name, "wb") as f:
+        test_file_path = get_test_file_path(
+            "awwparse.testsuite.positionals.ResourceTestCase.test_parse_file"
+        )
+        with file_cleaner([test_file_path]):
+            with open(test_file_path, "wb") as f:
                 f.write(b"foobar")
-            opener = cli.run(["-o", "file://" + test_name])[1]["foo"]
+            opener = cli.run(["-o", "file://" + test_file_path])[1]["foo"]
             with opener as f:
                 self.assert_equal(f.read(), "foobar")
-        finally:
-            os.remove(test_name)
 
     @skip_if(requests is None, "requires requests")
     def test_parse_http(self):
