@@ -746,6 +746,15 @@ class HTTPRequestOpener(Opener):
 
 class SchemeDispatchingOpener(Opener):
     fallback_scheme = "file"
+    # TODO: Add an FTPOpener. If we were using urllib(2), we would get FTP
+    #       support for free but apparently requests doesn't implement the FTP
+    #       scheme. The standard library has ftplib for dealing with FTP but
+    #       the abstraction is quite leaky and requires knowledge of the
+    #       protocol I don't have. urllib(2) uses some kind of wrapper around
+    #       FTPlib to deal with this problem but it seems to do a lot more than
+    #       is actually necessary. The best approach is probably to research
+    #       the FTP protocol and implement a wrapper by stripping down the
+    #       urllib(2) one to what is really needed.
     default_schemes = {
         "file": FileOpener,
         "http": HTTPRequestOpener
