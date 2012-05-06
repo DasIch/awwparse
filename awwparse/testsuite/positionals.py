@@ -372,6 +372,7 @@ class FileTestCase(TestCase):
         File(mode="r+", allow_std_streams=False)
 
         try:
+            test_file_name = "FileTestCase.test_parse.txt"
             cli = TestCLI(
                 options=[
                     ("foo", Option(
@@ -379,7 +380,7 @@ class FileTestCase(TestCase):
                     )
                 ]
             )
-            opener = cli.run(["-o", "FileTestCase.test_parse.txt"])[1]["foo"]
+            opener = cli.run(["-o", test_file_name])[1]["foo"]
             with opener as file:
                 file.write(b"foobar")
 
@@ -390,11 +391,11 @@ class FileTestCase(TestCase):
                     )
                 ]
             )
-            opener = cli.run(["-o", "FileTestCase.test_parse.txt"])[1]["foo"]
+            opener = cli.run(["-o", test_file_name])[1]["foo"]
             with opener as file:
                 self.assert_equal(file.read(), b"foobar")
         finally:
-            os.remove("FileTestCase.test_parse.txt")
+            os.remove(test_file_name)
 
 
     def test_repr(self):
