@@ -629,7 +629,11 @@ class FileOpener(Opener):
     def __init__(self, path, mode="r", buffering=-1, encoding=None,
                  errors=None, newline=None, opener=None):
         Opener.__init__(self)
-        self.path = path
+        components = urlparse(path)
+        if components.scheme == "file":
+            self.path = components.netloc + components.path
+        else:
+            self.path = path
         self.mode = mode
         self.buffering = buffering
         self.encoding = encoding
@@ -754,8 +758,6 @@ class SchemeDispatchingOpener(Opener):
             self.schemes = schemes
         components = urlparse(resource)
         scheme = components.scheme or self.fallback_scheme
-        if scheme == "file":
-            resource = components.netloc + components.path
         opener_arguments = {} if opener_arguments is None else opener_arguments
         args, kwargs = opener_arguments.get(scheme, ((), {}))
         self.opener = self.schemes[scheme](resource, *args, **kwargs)

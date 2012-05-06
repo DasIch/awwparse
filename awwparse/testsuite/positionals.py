@@ -397,6 +397,17 @@ class FileTestCase(TestCase):
             with opener as file:
                 self.assert_equal(file.read(), b"foobar")
 
+            cli = TestCLI(
+                options=[
+                    ("foo", Option(
+                        "-o", File(mode="rb", allow_std_streams=False)
+                    ))
+                ]
+            )
+            opener = cli.run(["-o", "file://" + test_file_path])[1]["foo"]
+            with opener as file:
+                self.assert_equal(file.read(), b"foobar")
+
     def test_repr(self):
         parts = [
             "mode='r'", "buffering=-1", "encoding=None", "errors=None",
