@@ -31,7 +31,7 @@ from awwparse.exceptions import (
 from awwparse.positionals import (
     String, Bytes, Integer, Float, Complex, Decimal, Any, Number, Choice,
     Positional, Boolean, NativeString, parse_positional_signature, Mapping, File,
-    Opener, FileOpener, StandardStreamOpener, Resource
+    Opener, FileOpener, StandardStreamOpener, Resource, LocalResource
 )
 from awwparse.actions import store_last, append_to_list, add_to_set, add, sub
 
@@ -894,7 +894,7 @@ __all__ = [
     "Float", "Complex", "Decimal", "Any", "Number", "Choice", "Boolean",
     "NativeString", "Mapping", "store_last", "append_to_list", "add_to_set",
     "add", "sub", "File", "Opener", "FileOpener", "StandardStreamOpener",
-    "Resource"
+    "Resource", "LocalResource"
 ]
 # This should probably be a test, even though I think Python should raise an
 # exception if __all__ is ill-defined, instead of ignoring it.

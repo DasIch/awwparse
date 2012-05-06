@@ -21,7 +21,8 @@ from six import u
 
 from awwparse import (
     Bytes, String, Integer, Float, Decimal, Complex, Option, Positional, Any,
-    Number, Choice, Boolean, NativeString, Mapping, File, Resource
+    Number, Choice, Boolean, NativeString, Mapping, File, LocalResource,
+    Resource
 )
 from awwparse.positionals import parse_positional_signature
 from awwparse.exceptions import UserTypeError
@@ -337,8 +338,28 @@ class MappingTestCase(TestCase):
 
 class FileTestCase(TestCase):
     def test_parse(self):
+        test_file_path = get_test_file_path(
+            "awwparse.testsuite.positionals.FileTestCase.test_parse"
+        )
+        with file_cleaner([test_file_path]):
+            cli = TestCLI(options=[("foo", Option("-o", File(mode="wb")))])
+            opener = cli.run(["-o", test_file_path])[1]["foo"]
+            with opener as file:
+                file.write(b"foobar")
+
+            cli = TestCLI(options=[("foo", Option("-o", File(mode="rb")))])
+            opener = cli.run(["-o", test_file_path])[1]["foo"]
+            with opener as file:
+                self.assert_equal(file.read(), b"foobar")
+
+
+class LocalResourceTestCase(TestCase):
+    def test_parse(self):
         stdin = StringIO("foobar")
-        cli = TestCLI(options=[("foo", Option("-o", File()))], stdin=stdin)
+        cli = TestCLI(
+            options=[("foo", Option("-o", LocalResource()))],
+            stdin=stdin
+        )
         opener = cli.run(["-o", "-"])[1]["foo"]
         with opener as file:
             self.assert_equal(file.read(), "foobar")
@@ -346,7 +367,7 @@ class FileTestCase(TestCase):
         stdout = BytesIO()
         cli = TestCLI(
             options=[
-                ("foo", Option("-o", File(mode="w")))
+                ("foo", Option("-o", LocalResource(mode="w")))
             ],
             stdout=stdout
         )
@@ -358,7 +379,7 @@ class FileTestCase(TestCase):
         stdout = BytesIO()
         cli = TestCLI(
             options=[
-                ("foo", Option("-o", File(mode="w", encoding="utf-8")))
+                ("foo", Option("-o", LocalResource(mode="w", encoding="utf-8")))
             ],
             stdout=stdout
         )
@@ -368,17 +389,18 @@ class FileTestCase(TestCase):
         self.assert_equal(stdout.getvalue(), u("äöü").encode("utf-8"))
 
         with self.assert_raises(ValueError):
-            File(mode="r+")
-        File(mode="r+", allow_std_streams=False)
+            LocalResource(mode="r+")
+        # check that it doesn't raise
+        LocalResource(mode="r+", allow_std_streams=False)
 
         test_file_path = get_test_file_path(
-            "awwparse.testsuite.positionals.FileTestCase.test_parse"
+            "awwparse.testsuite.positionals.LocalResourceTestCase.test_parse"
         )
         with file_cleaner([test_file_path]):
             cli = TestCLI(
                 options=[
                     ("foo", Option(
-                        "-o", File(mode="wb", allow_std_streams=False))
+                        "-o", LocalResource(mode="wb", allow_std_streams=False))
                     )
                 ]
             )
@@ -389,7 +411,7 @@ class FileTestCase(TestCase):
             cli = TestCLI(
                 options=[
                     ("foo", Option(
-                        "-o", File(mode="rb", allow_std_streams=False))
+                        "-o", LocalResource(mode="rb", allow_std_streams=False))
                     )
                 ]
             )
@@ -400,7 +422,7 @@ class FileTestCase(TestCase):
             cli = TestCLI(
                 options=[
                     ("foo", Option(
-                        "-o", File(mode="rb", allow_std_streams=False)
+                        "-o", LocalResource(mode="rb", allow_std_streams=False)
                     ))
                 ]
             )
@@ -415,7 +437,7 @@ class FileTestCase(TestCase):
             "allow_std_streams=True", "close_std_stream=False"
         ]
         for part in parts:
-            self.assert_in(part, repr(File()))
+            self.assert_in(part, repr(LocalResource()))
 
 
 class ResourceTestCase(TestCase):
@@ -465,5 +487,6 @@ suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,
     ComplexTestCase, BytesTestCase, AnyTestCase, NumberTestCase,
     ChoiceTestCase, BooleanTestCase, PositionalTestCase, ArgumentsTestCase,
-    NativeStringTestCase, MappingTestCase, FileTestCase, ResourceTestCase
+    NativeStringTestCase, MappingTestCase, FileTestCase, LocalResourceTestCase,
+    ResourceTestCase
 ])

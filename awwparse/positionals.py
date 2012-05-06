@@ -432,6 +432,55 @@ class Mapping(Positional):
         )
 
 
+class File(Positional):
+    def __init__(self, mode="r", buffering=-1, encoding=None, errors=None,
+                 newline=None, opener=None, **kwargs):
+        Positional.__init__(self, **kwargs)
+        self.mode = mode
+        self.buffering = buffering
+        self.encoding = encoding
+        self.errors = errors
+        self.newline = newline
+        self.opener = opener
+
+    def copy_args(self):
+        args = Positional.copy_args(self)
+        args.update({
+            "mode": self.mode,
+            "buffering": self.buffering,
+            "encoding": self.encoding,
+            "errors": self.errors,
+            "newline": self.newline,
+            "opener": self.opener
+        })
+        return args
+
+    def parse(self, command, arguments):
+        if self.remaining:
+            result = []
+            while arguments:
+                result.append(self.parse_single(command, arguments))
+            return result
+        try:
+            return self.parse_single(command, arguments)
+        except ArgumentMissing:
+            if self.optional:
+                raise EndOptionParsing()
+            raise
+
+    def parse_single(self, command, arguments):
+        return FileOpener(
+            command,
+            self.get_next_argument(command, arguments),
+            mode=self.mode,
+            buffering=self.buffering,
+            encoding=self.encoding,
+            errors=self.errors,
+            newline=self.newline,
+            opener=self.opener
+        )
+
+
 class LocalResource(Positional):
     """
     Represents a file or standard stream (`sys.std{in,out}`) and returns an
