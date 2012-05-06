@@ -424,11 +424,14 @@ class ResourceTestCase(TestCase):
     def test_parse_http(self):
         cli = TestCLI(options=[("foo", Option("-o", Resource()))])
         opener = cli.run(["-o", "http://httpbin.org/user-agent"])[1]["foo"]
-        with opener as response:
-            self.assert_equal(
-                json.loads(response.content),
-                {u("user-agent"): u("Awwparse/0.1-dev")}
-            )
+        try:
+            with opener as response:
+                self.assert_equal(
+                    json.loads(response.content),
+                    {u("user-agent"): u("Awwparse/0.1-dev")}
+                )
+        except requests.ConnectionError:
+            self.skip_test("missing internet connection")
 
     @skip_if(requests is not None, "requires requests not to be installed")
     def test_parse_http_fails(self):
