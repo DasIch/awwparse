@@ -450,6 +450,16 @@ class ResourceTestCase(TestCase):
         with self.assert_raises(RuntimeError):
             cli.run(["-o", "http://httpbin.org"])
 
+    def test_parse_standard_stream(self):
+        stdin = BytesIO(b"foobar")
+        cli = TestCLI(
+            options=[("foo", Option("-o", Resource()))],
+            stdin=stdin
+        )
+        opener = cli.run(["-o", "-"])[1]["foo"]
+        with opener as stream:
+            self.assert_equal(stream.read(), b"foobar")
+
 
 suite = make_suite([
     StringTestCase, IntegerTestCase, FloatTestCase, DecimalTestCase,

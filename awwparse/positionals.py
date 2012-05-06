@@ -531,8 +531,9 @@ class Resource(Positional):
     Represents a resource and returns an :class:`Opener` object.
 
     Schemes:
-     - `file`
-     - `http`
+     - `""` - No scheme given: file or standard stream
+     - `"file"`
+     - `"http"`
     """
     def __init__(self, schemes=None, opener_arguments=None, **kwargs):
         Positional.__init__(self, **kwargs)
@@ -802,7 +803,6 @@ class HTTPRequestOpener(Opener):
 
 
 class SchemeDispatchingOpener(Opener):
-    fallback_scheme = "file"
     # TODO: Add an FTPOpener. If we were using urllib(2), we would get FTP
     #       support for free but apparently requests doesn't implement the FTP
     #       scheme. The standard library has ftplib for dealing with FTP but
@@ -813,6 +813,7 @@ class SchemeDispatchingOpener(Opener):
     #       the FTP protocol and implement a wrapper by stripping down the
     #       urllib(2) one to what is really needed.
     default_schemes = {
+        "": LocalResourceOpener,
         "file": FileOpener,
         "http": HTTPRequestOpener
     }
@@ -823,8 +824,7 @@ class SchemeDispatchingOpener(Opener):
             self.schemes = self.default_schemes.copy()
         else:
             self.schemes = schemes
-        components = urlparse(resource)
-        scheme = components.scheme or self.fallback_scheme
+        scheme = urlparse(resource).scheme
         opener_arguments = {} if opener_arguments is None else opener_arguments
         args, kwargs = opener_arguments.get(scheme, ((), {}))
         self.opener = self.schemes[scheme](
