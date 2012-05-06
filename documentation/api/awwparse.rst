@@ -56,6 +56,9 @@ Positionals
 .. autoclass:: Mapping
 
 
+.. autoclass:: File
+
+
 .. autoclass:: LocalResource
 
 

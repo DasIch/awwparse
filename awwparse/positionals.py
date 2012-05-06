@@ -433,6 +433,17 @@ class Mapping(Positional):
 
 
 class File(Positional):
+    """
+    Represents a file and returns an :class:`Opener` object.
+
+    If Python 2.x is used and `encoding` is not ``None`` :func:`codecs.open()`
+    will be used instead of :func:`open()`.
+
+    For the remaining arguments refer to :func:`open()`,
+    `open()`_ and :func:`codecs.open()`.
+
+    .. _open(): http://docs.python.org/dev/library/functions.html#open
+    """
     def __init__(self, mode="r", buffering=-1, encoding=None, errors=None,
                  newline=None, opener=None, **kwargs):
         Positional.__init__(self, **kwargs)
@@ -483,16 +494,12 @@ class File(Positional):
 
 class LocalResource(Positional):
     """
-    Represents a file or standard stream (`sys.std{in,out}`) and returns an
-    :class:`Opener` object.
+    Like :class:`File` but also allows standard streams (`sys.stdin{in,out}`).
 
     You can define which argument opens a standard stream with
     `std_stream_argument`, whether standard streams should be used at all with
     `allow_std_streams` and whether they should be closed with
     `close_std_stream`.
-
-    If Python 2.x is used and `encoding` is not ``None`` :func:`codecs.open()`
-    will be used instead of :func:`open()`.
 
     Standard streams will be wrapped in a :class:`codecs.StreamReaderWriter` if
     Python 2.x is used and `encoding` is not ``None`` or Python 3.x is used but
@@ -503,11 +510,6 @@ class LocalResource(Positional):
     If standard streams are allowed (the default), `mode` has to be either
     `r` or `w` which will open `sys.stdin` and `sys.stdout` respectively,
     otherwise a :exc:`ValueError` will be raised.
-
-    For the remaining arguments refer to :func:`open()`,
-    `open()`_ and :func:`codecs.open()`.
-
-    .. _open(): http://docs.python.org/dev/library/functions.html#open
     """
     def __init__(self, mode="r", buffering=-1, encoding=None, errors=None,
                  newline=None, opener=None, std_stream_argument="-",
