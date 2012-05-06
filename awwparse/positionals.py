@@ -584,6 +584,9 @@ class Resource(Positional):
      - `""` - No scheme given: file or standard stream
      - `"file"`
      - `"http"`
+
+    .. note:: In order to access HTTP resources `requests` needs to be
+              installed.
     """
     def __init__(self, schemes=None, opener_arguments=None, **kwargs):
         Positional.__init__(self, **kwargs)

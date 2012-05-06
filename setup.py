@@ -17,6 +17,11 @@ setup(
     zip_safe=False,
     platforms="any",
     install_requires=["six>=1.1.0"],
+    extras_require={
+        # Required to make HTTP requests e.g. when using
+        # :class:`awwparse.Resource`.
+        "http-support": ["requests>=0.12.0"]
+    },
     classifiers=[
         "Environment :: Console",
         "Topic :: Software Development :: User Interfaces",
