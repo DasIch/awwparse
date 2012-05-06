@@ -87,11 +87,5 @@ Actions
 Helpers
 -------
 
-.. autoclass:: Opener
-   :members:
-
-.. autoclass:: FileOpener
-   :members:
-
-.. autoclass:: StandardStreamOpener
+.. autoclass:: awwparse.positionals.Opener
    :members:
