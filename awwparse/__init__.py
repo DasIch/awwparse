@@ -736,7 +736,7 @@ class Option(object):
             raise ValueError(
                 "using has to be 'short', 'long' or 'both'; not %r" % using
             )
-        # The usage is generated in two steps:
+        # The usage is generated in three steps:
         # 1. A "linked list" is generated with lists as nodes. Each node is a
         #    list consisting of an optional positional as first item followed by
         #    zero or more required positionals, optionally followed by a list
@@ -746,6 +746,9 @@ class Option(object):
         #    usage strings of the positionals in a given node with brackets.
         #    The exception is the root which is not enclosed by brackets as the
         #    first node is always required.
+        #
+        # 3. The usage string generated in `2` is prefixed with the short and/
+        #    or the long and either or both joined with a comma are returned.
 
         def step(acc, next):
             root, current = acc
