@@ -508,31 +508,19 @@ class File(Positional):
 
     def parse_single(self, command, arguments):
         argument = self.get_next_argument(command, arguments)
-        if argument == self.std_stream_argument and self.allow_std_streams:
-            if self.mode == "r":
-                stream = command.stdin
-            elif self.mode == "w":
-                stream = command.stdout
-            else:
-                raise ValueError(
-                    "invalid mode for standard stream: {0!r}".format(self.mode)
-                )
-            return StandardStreamOpener(
-                stream,
-                should_close=self.close_std_stream,
-                encoding=self.encoding,
-                errors=self.errors
-            )
-        else:
-            return FileOpener(
-                argument,
-                mode=self.mode,
-                buffering=self.buffering,
-                encoding=self.encoding,
-                errors=self.errors,
-                newline=self.newline,
-                opener=self.opener
-            )
+        return LocalResourceOpener(
+            command,
+            argument,
+            mode=self.mode,
+            buffering=self.buffering,
+            encoding=self.encoding,
+            errors=self.errors,
+            newline=self.newline,
+            opener=self.opener,
+            std_stream_resource=self.std_stream_argument,
+            allow_std_streams=self.allow_std_streams,
+            close_std_stream=self.close_std_stream
+        )
 
     def __repr__(self):
         return create_repr(self.__class__.__name__, [], self.copy_args())
@@ -586,7 +574,7 @@ class Resource(Positional):
     def parse_single(self, command, arguments):
         argument = self.get_next_argument(command, arguments)
         return SchemeDispatchingOpener(
-            argument, self.schemes, self.opener_arguments
+            command, argument, self.schemes, self.opener_arguments
         )
 
 
@@ -596,7 +584,8 @@ class Opener(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self):
+    def __init__(self, command):
+        self.command = command
         self.resource = None
 
     @abstractmethod
@@ -609,7 +598,7 @@ class Opener(object):
         raise NotImplementedError()
 
     @abstractmethod
-    def release_resource(self):
+    def release_resource(self, resource):
         """
         Releases the resource.
 
@@ -626,9 +615,9 @@ class Opener(object):
 
 
 class FileOpener(Opener):
-    def __init__(self, path, mode="r", buffering=-1, encoding=None,
+    def __init__(self, command, path, mode="r", buffering=-1, encoding=None,
                  errors=None, newline=None, opener=None):
-        Opener.__init__(self)
+        Opener.__init__(self, command)
         components = urlparse(path)
         if components.scheme == "file":
             self.path = components.netloc + components.path
@@ -689,8 +678,9 @@ class FileOpener(Opener):
 
 
 class StandardStreamOpener(Opener):
-    def __init__(self, stream, should_close=False, encoding=None, errors=None):
-        Opener.__init__(self)
+    def __init__(self, command, stream, should_close=False, encoding=None,
+                 errors=None):
+        Opener.__init__(self, command)
         self.stream = stream
         self.should_close = should_close
         self.encoding = encoding
@@ -727,8 +717,75 @@ class StandardStreamOpener(Opener):
         )
 
 
+class LocalResourceOpener(Opener):
+    std_stream_modes = frozenset(["r", "w"])
+
+    def __init__(self, command, url, mode="r", buffering=-1, encoding=None,
+                 errors=None, newline=None, opener=None,
+                 std_stream_resource="-", allow_std_streams=True,
+                 close_std_stream=False):
+        Opener.__init__(self, command)
+        self.std_stream_resource = std_stream_resource
+        self.allow_std_streams = allow_std_streams
+        self.close_std_stream = close_std_stream
+        self.url = url
+        self.mode = mode
+        self.buffering = buffering
+        self.encoding = encoding
+        self.errors = errors
+        self.newline = newline
+        self.opener = opener
+        self._opener = None
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, new_mode):
+        if self.allow_std_streams and new_mode not in self.std_stream_modes:
+            raise ValueError(
+                "invalid mode for standard stream: {0!r}".format(new_mode)
+            )
+        self._mode = new_mode
+
+    def acquire_resource(self):
+        if self.allow_std_streams and self.url == self.std_stream_resource:
+            if self.mode == "r":
+                stream = self.command.stdin
+            else:
+                stream = self.command.stdout
+            self._opener = StandardStreamOpener(
+                self.command,
+                stream,
+                should_close=self.close_std_stream,
+                encoding=self.encoding,
+                errors=self.errors
+            )
+        else:
+            self._opener = FileOpener(
+                self.command,
+                self.url,
+                mode=self.mode,
+                buffering=self.buffering,
+                encoding=self.encoding,
+                errors=self.errors,
+                newline=self.newline,
+                opener=self.opener
+            )
+        return self._opener.acquire_resource()
+
+    def release_resource(self, resource):
+        if self._opener is None:
+            raise RuntimeError(
+                "called release_resource before acquire_resource"
+            )
+        self._opener.release_resource(resource)
+
+
 class HTTPRequestOpener(Opener):
-    def __init__(self, url, **kwargs):
+    def __init__(self, command, url, **kwargs):
+        Opener.__init__(self, command)
         if requests is None:
             raise RuntimeError("requires 'requests' to be installed")
         self.url = url
@@ -760,7 +817,8 @@ class SchemeDispatchingOpener(Opener):
         "http": HTTPRequestOpener
     }
 
-    def __init__(self, resource, schemes=None, opener_arguments=None):
+    def __init__(self, command, resource, schemes=None, opener_arguments=None):
+        Opener.__init__(self, command)
         if schemes is None:
             self.schemes = self.default_schemes.copy()
         else:
@@ -769,7 +827,9 @@ class SchemeDispatchingOpener(Opener):
         scheme = components.scheme or self.fallback_scheme
         opener_arguments = {} if opener_arguments is None else opener_arguments
         args, kwargs = opener_arguments.get(scheme, ((), {}))
-        self.opener = self.schemes[scheme](resource, *args, **kwargs)
+        self.opener = self.schemes[scheme](
+            self.command, resource, *args, **kwargs
+        )
 
     def acquire_resource(self):
         return self.opener.acquire_resource()
