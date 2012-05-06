@@ -715,8 +715,7 @@ class Option(object):
         if isinstance(metavar, six.binary_type):
             metavar = metavar.decode("utf-8")
         for positional in self.positionals:
-            if positional.metavar is None:
-                positional.metavar = metavar
+            positional.setdefault_metavar(metavar)
 
     def copy(self):
         option = self.__class__.__new__(self.__class__)
